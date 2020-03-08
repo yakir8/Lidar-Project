@@ -8,26 +8,23 @@ using System.Net.NetworkInformation;
 using System.Net.Sockets;
 
 
-namespace LidarApplication
-{
-    class SocketSync
-    {
+namespace LidarApplication {
+    class SocketSync {
         private IPAddress srcAddress;
         private IPAddress destAddress;
         private int port;
 
-        public SocketSync(IPAddress srcAddress, IPAddress destAddress, int port)
-        {
+        public SocketSync(IPAddress srcAddress, IPAddress destAddress, int port) {
             this.srcAddress = srcAddress;
             this.destAddress = destAddress;
             this.port = port;
         }
 
-        public string SendAndReceiveData(string data, int bufferSize)
-        {
-            try
-            {
+        public string SendAndReceiveData(string data, int bufferSize, int timeout = 250) {
+            try {
                 Socket clientSock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                clientSock.SendTimeout = timeout;           // Set timeout of 250 milliseconds for send data
+                clientSock.ReceiveTimeout = timeout;        // Set timeout of 250 milliseconds for receive data
                 EndPoint srcEP = new IPEndPoint(srcAddress, 0);
                 clientSock.Bind(srcEP);
                 EndPoint destEP = new IPEndPoint(destAddress, port);
@@ -37,35 +34,30 @@ namespace LidarApplication
                 byte[] recevedBuffer = new byte[bufferSize];
                 clientSock.Receive(recevedBuffer);
                 StringBuilder msg = new StringBuilder();
-                foreach (byte b in recevedBuffer)
-                {
+                foreach (byte b in recevedBuffer) {
                     if (b.Equals(00)) break;
                     else msg.Append(Convert.ToChar(b).ToString());
                 }
                 Console.WriteLine(msg);
                 clientSock.Close();
                 return msg.ToString();
+            } catch (ArgumentNullException ane) {
+                Console.WriteLine("ArgumentNullException: ", ane.ToString());
+                return null;
+            } catch (SocketException se) {
+                Console.WriteLine("SocketException: ", se.ToString());
+                return null;
+            } catch (Exception e) {
+                Console.WriteLine("Unexpected exception: ", e.ToString());
+                return null;
             }
-            catch (ArgumentNullException ane)
-            {
-                Console.WriteLine("ArgumentNullException : {0}", ane.ToString());
-            }
-            catch (SocketException se)
-            {
-                Console.WriteLine("SocketException : {0}", se.ToString());
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("Unexpected exception : {0}", e.ToString());
-            }
-            return "Connection Error";
         }
 
-        public void SendData(string data)
-        {
-            try
-            {
+        public bool SendData(string data, int timeout = 250) {
+            try {
                 Socket clientSock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                clientSock.SendTimeout = timeout;           // Set timeout of 250 milliseconds for send data
+                clientSock.ReceiveTimeout = timeout;        // Set timeout of 250 milliseconds for receive data
                 EndPoint srcEP = new IPEndPoint(srcAddress, 0);
                 clientSock.Bind(srcEP);
                 EndPoint destEP = new IPEndPoint(destAddress, port);
@@ -73,19 +65,17 @@ namespace LidarApplication
                 byte[] bytes = Encoding.ASCII.GetBytes(data);
                 clientSock.Send(bytes);
                 clientSock.Close();
+            } catch (ArgumentNullException ane) {
+                Console.WriteLine("ArgumentNullException: ", ane.ToString());
+                return false;
+            } catch (SocketException se) {
+                Console.WriteLine("SocketException: ", se.ToString());
+                return false;
+            } catch (Exception e) {
+                Console.WriteLine("Unexpected exception: ", e.ToString());
+                return false;
             }
-            catch (ArgumentNullException ane)
-            {
-                Console.WriteLine("ArgumentNullException : {0}", ane.ToString());
-            }
-            catch (SocketException se)
-            {
-                Console.WriteLine("SocketException : {0}", se.ToString());
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("Unexpected exception : {0}", e.ToString());
-            }
+            return true;
         }
     }
 }

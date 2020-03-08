@@ -3,56 +3,66 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-namespace LidarApplication
-{
+
+namespace LidarApplication {
     // State object for reading client data asynchronously  
-    public class StateObject
-    {
+    public class StateObject {
         // Client  socket.  
         public Socket workSocket = null;
         // Size of receive buffer.  
-        public const int BufferSize = 1024;
+        public const int BufferSize = 5048;
         // Receive buffer.  
         public byte[] buffer = new byte[BufferSize];
         // Received data string.  
         public StringBuilder sb = new StringBuilder();
     }
 
-
-    class SocketAsync
-    {
+    class SocketAsync {
         // Thread signal.  
         public static ManualResetEvent allDone = new ManualResetEvent(false);
+        private Thread listenerThread;
 
         private int port;
-        private string ip;
-        private Func<string, string> ReceiveMethod;
-        private Func<string, string> SendMethod;
+        private IPAddress ipAddress;
+        private Action<string> ReceiveHandler;
+        private Func<string> SendHandler;
 
-
-        public SocketAsync(string ip, int port, Func<string, string> ReceiveMethod, Func<string, string> SendMethod)
-        {
-            this.ip = ip;
+        public SocketAsync(string ip, int port, Action<string> ReceiveHandler, Func<string> SendHandler) {
+            this.ipAddress = IPAddress.Parse(ip);
             this.port = port;
-            this.ReceiveMethod = ReceiveMethod;
-            this.SendMethod = SendMethod;
+            this.ReceiveHandler = ReceiveHandler;
+            this.SendHandler = SendHandler;
         }
 
-        public void StartListening()
-        {
-            IPAddress ipAddress = IPAddress.Parse(ip);
-            try
-            {
+        public SocketAsync(string ip, int port, Action<string> ReceiveHandler) {
+            this.ipAddress = IPAddress.Parse(ip);
+            this.port = port;
+            this.ReceiveHandler = ReceiveHandler;
+        }
+
+        public SocketAsync(IPAddress ip, int port, Action<string> ReceiveHandler, Func<string> SendHandler) {
+            this.ipAddress = ip;
+            this.port = port;
+            this.ReceiveHandler = ReceiveHandler;
+            this.SendHandler = SendHandler;
+        }
+
+        public SocketAsync(IPAddress ip, int port, Action<string> ReceiveHandler) {
+            this.ipAddress = ip;
+            this.port = port;
+            this.ReceiveHandler = ReceiveHandler;
+        }
+
+        public void StartListening() {
+            try {
                 IPEndPoint localEndPoint = new IPEndPoint(ipAddress, port);
                 // Create a TCP/IP socket.  
                 Socket listener = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
                 // Bind the socket to the local endpoint and listen for incoming connections.  
                 listener.Bind(localEndPoint);
                 listener.Listen(100);
-                Thread listenerThread = new Thread(() =>
-                {
-                    while (true)
-                    {
+                listenerThread = new Thread(() => {
+                    while (true) {
                         // Set the event to nonsignaled state.  
                         allDone.Reset();
                         // Start an asynchronous socket to listen for connections.  
@@ -63,9 +73,7 @@ namespace LidarApplication
                     }
                 });
                 listenerThread.Start();
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 Console.WriteLine(e.ToString());
             }
             Console.WriteLine("\nPress ENTER to continue...");
@@ -73,8 +81,9 @@ namespace LidarApplication
 
         }
 
-        public void AcceptCallback(IAsyncResult ar)
-        {
+        public void StopListening() { if (listenerThread != null) listenerThread.Abort(); }
+
+        public void AcceptCallback(IAsyncResult ar) {
             // Signal the main thread to continue.  
             allDone.Set();
 
@@ -89,47 +98,31 @@ namespace LidarApplication
                 new AsyncCallback(ReadCallback), state);
         }
 
-        public void ReadCallback(IAsyncResult ar)
-        {
+        public void ReadCallback(IAsyncResult ar) {
             String content = String.Empty;
 
-            // Retrieve the state object and the handler socket  
-            // from the asynchronous state object.  
+            // Retrieve the state object and the handler socket from the asynchronous state object.  
             StateObject state = (StateObject)ar.AsyncState;
             Socket handler = state.workSocket;
 
             // Read data from the client socket.   
             int bytesRead = handler.EndReceive(ar);
 
-            if (bytesRead > 0)
-            {
+            if (bytesRead > 0) {
                 // There  might be more data, so store the data received so far.  
-                state.sb.Append(Encoding.ASCII.GetString(
-                    state.buffer, 0, bytesRead));
+                state.sb.Append(Encoding.ASCII.GetString(state.buffer, 0, bytesRead));
 
-                // Check for end-of-file tag. If it is not there, read   
-                // more data.  
+                // Check for end-of-file tag. If it is not there, read more data.  
                 content = state.sb.ToString();
-                if (content.IndexOf("<EOF>") > -1)
-                {
-                    // All the data has been read from the   
-                    // client. Display it on the console.  
-                    Console.WriteLine("Read {0} bytes from socket. \n Data : {1}",
-                        content.Length, content);
-                    // Echo the data back to the client.  
-                    Send(handler, content);
-                }
-                else
-                {
-                    // Not all data received. Get more.  
-                    handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0,
-                    new AsyncCallback(ReadCallback), state);
-                }
+
+                ReceiveHandler(content);
+
+                // Echo the data back to the client.  
+                if (SendHandler != null) Send(handler, SendHandler());
             }
         }
 
-        private void Send(Socket handler, string data)
-        {
+        private void Send(Socket handler, string data) {
             // Convert the string data to byte data using ASCII encoding.  
             byte[] byteData = Encoding.ASCII.GetBytes(data);
 
@@ -138,23 +131,19 @@ namespace LidarApplication
                 new AsyncCallback(SendCallback), handler);
         }
 
-        private void SendCallback(IAsyncResult ar)
-        {
-            try
-            {
+        private void SendCallback(IAsyncResult ar) {
+            try {
                 // Retrieve the socket from the state object.  
                 Socket handler = (Socket)ar.AsyncState;
 
                 // Complete sending the data to the remote device.  
                 int bytesSent = handler.EndSend(ar);
-                Console.WriteLine("Sent {0} bytes to client.", bytesSent);
+                //Console.WriteLine("Sent {0} bytes to client.", bytesSent);
 
                 handler.Shutdown(SocketShutdown.Both);
                 handler.Close();
 
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 Console.WriteLine(e.ToString());
             }
         }

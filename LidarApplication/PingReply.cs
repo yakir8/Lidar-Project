@@ -9,13 +9,10 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LidarApplication
-{
+namespace LidarApplication {
     [Serializable]
-    public class PingReply
-    {
-        public static PingReply Send(IPAddress srcAddress, IPAddress destAddress, int timeout = 5000, byte[] buffer = null, PingOptions po = null)
-        {
+    public class PingReply {
+        public static PingReply Send(IPAddress srcAddress, IPAddress destAddress, int timeout = 1500, byte[] buffer = null, PingOptions po = null) {
             if (destAddress == null || destAddress.AddressFamily != AddressFamily.InterNetwork || destAddress.Equals(IPAddress.Any))
                 throw new ArgumentException();
 
@@ -23,8 +20,7 @@ namespace LidarApplication
             var source = srcAddress == null ? 0 : BitConverter.ToUInt32(srcAddress.GetAddressBytes(), 0);
             var destination = BitConverter.ToUInt32(destAddress.GetAddressBytes(), 0);
             var sendbuffer = buffer ?? new byte[] { };
-            var options = new Interop.Option
-            {
+            var options = new Interop.Option {
                 Ttl = (po == null ? (byte)255 : (byte)po.Ttl),
                 Flags = (po == null ? (byte)0 : po.DontFragment ? (byte)0x02 : (byte)0) //0x02
             };
@@ -33,8 +29,7 @@ namespace LidarApplication
 
 
             var allocSpace = Marshal.AllocHGlobal(fullReplyBufferSize); // unmanaged allocation of reply size. TODO Maybe should be allocated on stack
-            try
-            {
+            try {
                 DateTime start = DateTime.Now;
                 var nativeCode = Interop.IcmpSendEcho2Ex(
                     Interop.IcmpHandle, //_In_      HANDLE IcmpHandle,
@@ -54,8 +49,7 @@ namespace LidarApplication
                 var reply = (Interop.Reply)Marshal.PtrToStructure(allocSpace, typeof(Interop.Reply)); // Parse the beginning of reply memory to reply struct
 
                 byte[] replyBuffer = null;
-                if (sendbuffer.Length != 0)
-                {
+                if (sendbuffer.Length != 0) {
                     replyBuffer = new byte[sendbuffer.Length];
                     Marshal.Copy(allocSpace + Interop.ReplyMarshalLength, replyBuffer, 0, sendbuffer.Length); //copy the rest of the reply memory to managed byte[]
                 }
@@ -64,9 +58,7 @@ namespace LidarApplication
                     return new PingReply(nativeCode, reply.Status, new IPAddress(reply.Address), duration);
                 else
                     return new PingReply(nativeCode, reply.Status, new IPAddress(reply.Address), reply.RoundTripTime, replyBuffer);
-            }
-            finally
-            {
+            } finally {
                 Marshal.FreeHGlobal(allocSpace); //free allocated space
             }
         }
@@ -74,20 +66,16 @@ namespace LidarApplication
         /// <summary>Interoperability Helper
         ///     <see cref="http://msdn.microsoft.com/en-us/library/windows/desktop/bb309069(v=vs.85).aspx" />
         /// </summary>
-        private static class Interop
-        {
+        private static class Interop {
             private static IntPtr? icmpHandle;
             private static int? _replyStructLength;
 
             /// <summary>Returns the application legal icmp handle. Should be close by IcmpCloseHandle
             ///     <see cref="http://msdn.microsoft.com/en-us/library/windows/desktop/aa366045(v=vs.85).aspx" />
             /// </summary>
-            public static IntPtr IcmpHandle
-            {
-                get
-                {
-                    if (icmpHandle == null)
-                    {
+            public static IntPtr IcmpHandle {
+                get {
+                    if (icmpHandle == null) {
                         icmpHandle = IcmpCreateFile();
                         //TODO Close Icmp Handle appropiate
                     }
@@ -96,12 +84,9 @@ namespace LidarApplication
                 }
             }
             /// <summary>Returns the the marshaled size of the reply struct.</summary>
-            public static int ReplyMarshalLength
-            {
-                get
-                {
-                    if (_replyStructLength == null)
-                    {
+            public static int ReplyMarshalLength {
+                get {
+                    if (_replyStructLength == null) {
                         _replyStructLength = Marshal.SizeOf(typeof(Reply));
                     }
                     return _replyStructLength.GetValueOrDefault();
@@ -116,8 +101,7 @@ namespace LidarApplication
             [DllImport("Iphlpapi.dll", SetLastError = true)]
             public static extern uint IcmpSendEcho2Ex(IntPtr icmpHandle, IntPtr Event, IntPtr apcroutine, IntPtr apccontext, UInt32 sourceAddress, UInt32 destinationAddress, byte[] requestData, short requestSize, ref Option requestOptions, IntPtr replyBuffer, int replySize, int timeout);
             [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-            public struct Option
-            {
+            public struct Option {
                 public byte Ttl;
                 public readonly byte Tos;
                 public byte Flags;
@@ -125,8 +109,7 @@ namespace LidarApplication
                 public readonly IntPtr OptionsData;
             }
             [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-            public struct Reply
-            {
+            public struct Reply {
                 public readonly UInt32 Address;
                 public readonly int Status;
                 public readonly int RoundTripTime;
@@ -137,7 +120,7 @@ namespace LidarApplication
             }
         }
 
-       
+
         private readonly byte[] _buffer = null;
         private readonly IPAddress _ipAddress = null;
         private readonly uint _nativeCode = 0;
@@ -146,15 +129,13 @@ namespace LidarApplication
         private Win32Exception _exception;
 
 
-        internal PingReply(uint nativeCode, int replystatus, IPAddress ipAddress, TimeSpan duration)
-        {
+        internal PingReply(uint nativeCode, int replystatus, IPAddress ipAddress, TimeSpan duration) {
             _nativeCode = nativeCode;
             _ipAddress = ipAddress;
             if (Enum.IsDefined(typeof(IPStatus), replystatus))
                 _status = (IPStatus)replystatus;
         }
-        internal PingReply(uint nativeCode, int replystatus, IPAddress ipAddress, int roundTripTime, byte[] buffer)
-        {
+        internal PingReply(uint nativeCode, int replystatus, IPAddress ipAddress, int roundTripTime, byte[] buffer) {
             _nativeCode = nativeCode;
             _ipAddress = ipAddress;
             _roundTripTime = TimeSpan.FromMilliseconds(roundTripTime);
@@ -165,32 +146,25 @@ namespace LidarApplication
 
 
         /// <summary>Native result from <code>IcmpSendEcho2Ex</code>.</summary>
-        public uint NativeCode
-        {
+        public uint NativeCode {
             get { return _nativeCode; }
         }
-        public IPStatus Status
-        {
+        public IPStatus Status {
             get { return _status; }
         }
         /// <summary>The source address of the reply.</summary>
-        public IPAddress IpAddress
-        {
+        public IPAddress IpAddress {
             get { return _ipAddress; }
         }
-        public byte[] Buffer
-        {
+        public byte[] Buffer {
             get { return _buffer; }
         }
-        public TimeSpan RoundTripTime
-        {
+        public TimeSpan RoundTripTime {
             get { return _roundTripTime; }
         }
         /// <summary>Resolves the <code>Win32Exception</code> from native code</summary>
-        public Win32Exception Exception
-        {
-            get
-            {
+        public Win32Exception Exception {
+            get {
                 if (Status != IPStatus.Success)
                     return _exception ?? (_exception = new Win32Exception((int)NativeCode, Status.ToString()));
                 else
@@ -198,8 +172,7 @@ namespace LidarApplication
             }
         }
 
-        public override string ToString()
-        {
+        public override string ToString() {
             if (Status == IPStatus.Success)
                 return Status + " from " + IpAddress + " in " + RoundTripTime + " ms with " + Buffer.Length + " bytes";
             else if (Status != IPStatus.Unknown)

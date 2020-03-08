@@ -33,8 +33,12 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="IPAddressControlLib">
+      <HintPath>.\IPAddressControlLib.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Windows.Forms.DataVisualization" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -52,8 +56,16 @@
     <Compile Include="Boot.Designer.cs">
       <DependentUpon>Boot.cs</DependentUpon>
     </Compile>
+    <Compile Include="ChangeIP.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ChangeIP.Designer.cs">
+      <DependentUpon>ChangeIP.cs</DependentUpon>
+    </Compile>
     <Compile Include="Configuration.cs" />
     <Compile Include="Lidar.cs" />
+    <Compile Include="LocalIP.cs" />
+    <Compile Include="Obstacle.cs" />
     <Compile Include="OperatorMode.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -62,14 +74,26 @@
     </Compile>
     <Compile Include="PingReply.cs" />
     <Compile Include="Program.cs" />
+    <Compile Include="ProgressBarDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ProgressBarDialog.Designer.cs">
+      <DependentUpon>ProgressBarDialog.cs</DependentUpon>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SocketAsync.cs" />
     <Compile Include="SocketSync.cs" />
     <EmbeddedResource Include="Boot.resx">
       <DependentUpon>Boot.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="ChangeIP.resx">
+      <DependentUpon>ChangeIP.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="OperatorMode.resx">
       <DependentUpon>OperatorMode.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ProgressBarDialog.resx">
+      <DependentUpon>ProgressBarDialog.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
