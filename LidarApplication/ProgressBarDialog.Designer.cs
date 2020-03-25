@@ -38,6 +38,7 @@
             this.progressBar.Margin = new System.Windows.Forms.Padding(6, 5, 6, 5);
             this.progressBar.Name = "progressBar";
             this.progressBar.Size = new System.Drawing.Size(491, 39);
+            this.progressBar.Step = 100;
             this.progressBar.TabIndex = 0;
             // 
             // label1

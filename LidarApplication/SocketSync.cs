@@ -12,9 +12,17 @@ namespace LidarApplication {
     class SocketSync {
         private IPAddress srcAddress;
         private IPAddress destAddress;
+        private Action<bool> TimeOut;
         private int port;
 
         public SocketSync(IPAddress srcAddress, IPAddress destAddress, int port) {
+            this.srcAddress = srcAddress;
+            this.destAddress = destAddress;
+            this.port = port;
+        }
+
+        public SocketSync(IPAddress srcAddress, IPAddress destAddress, int port, Action<bool> TimeOut) {
+            this.TimeOut = TimeOut;
             this.srcAddress = srcAddress;
             this.destAddress = destAddress;
             this.port = port;
@@ -65,11 +73,13 @@ namespace LidarApplication {
                 byte[] bytes = Encoding.ASCII.GetBytes(data);
                 clientSock.Send(bytes);
                 clientSock.Close();
+                if (TimeOut != null) TimeOut(false);
             } catch (ArgumentNullException ane) {
                 Console.WriteLine("ArgumentNullException: ", ane.ToString());
                 return false;
             } catch (SocketException se) {
-                Console.WriteLine("SocketException: ", se.ToString());
+                if (se.SocketErrorCode == SocketError.TimedOut && TimeOut != null) TimeOut(true);
+                else Console.WriteLine("SocketException: ", se.ToString());
                 return false;
             } catch (Exception e) {
                 Console.WriteLine("Unexpected exception: ", e.ToString());

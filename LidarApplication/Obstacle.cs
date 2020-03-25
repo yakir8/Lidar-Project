@@ -29,6 +29,7 @@ namespace LidarApplication {
 
         private List<float> Angle = new List<float>();
         private List<float> Radius = new List<float>();
+        private Location location;
 
         public Obstacle(float Angle, float Radius) {
             this.Angle.Add(Angle);
@@ -65,11 +66,14 @@ namespace LidarApplication {
             return "לא ידוע";
         }
         public int GetAleatState() {
-            Configuration configuration = new Configuration();
-            if (GetH() <= configuration.getHighAlert() * 10 && Math.Abs(GetX()) <= configuration.getHighAlert() * 10)
-                return 2;
-            if (GetH() <= configuration.getLowAlert() * 10 && Math.Abs(GetX()) <= configuration.getLowAlert() * 10)
-                return 1;
+            Configuration config = new Configuration();
+            double vehicleWidth = config.getVehicleWidth() / 2;
+            if (GetH() <= config.getFrontHighAlert() * 10) return 2;
+            if (GetH() <= config.getFrontLowAlert() * 10) return 1;
+            if ((Math.Abs(GetX()) - vehicleWidth * 10)  <= config.getSideHighAlert() * 10) return 2;
+            if ((Math.Abs(GetX()) - vehicleWidth * 10) <= config.getSideLowAlert() * 10) return 2;
+            if (GetY() <= config.getHeightHighAlert() * 10) return 2;
+            if (GetY() <= config.getHeightLowAlert() * 10) return 1;
             return -1;
         }
         public string GetHeight() {
@@ -92,7 +96,7 @@ namespace LidarApplication {
             Configuration configuration = new Configuration();
             // α = 180 - 90 - β
             // β = lidar setup angle
-            int alpha = 90 - configuration.getAngle();
+            int alpha = 90 - configuration.getAngleSetup();
             double radians = alpha * (Math.PI / 180);
             float a = float.MaxValue;
             for (int i = 0; i < Radius.Count; i++) {
@@ -100,7 +104,7 @@ namespace LidarApplication {
                 if (temp < a) a = temp;
             }
             
-            return configuration.getHeight() * 10 - a;
+            return configuration.getSensorHeightSetup() * 10 - a;
         }
         //Convert from R unit to H
         public float GetH() {
@@ -124,14 +128,20 @@ namespace LidarApplication {
         }
         public bool InActiveZone() {
             Configuration configuration = new Configuration();
-            int minoricAlert = configuration.getLowAlert() * 10;
+            int minoricAlert = configuration.getSideLowAlert() * 10;
             return GetH() <= minoricAlert && Math.Abs(GetX()) <= minoricAlert;
         }
         public bool isEqule(Obstacle o) {
-            if (this.GetX() - 250 < o.GetX() && this.GetX() + 250 > o.GetX()) return false;
-            if (this.GetH() -250 < o.GetH() && this.GetH() +250 > o.GetH()) return false;
+            if (this.GetX() - 250 > o.GetX() && this.GetX() + 250 < o.GetX()) return false;
+            if (this.GetH() -250 > o.GetH() && this.GetH() + 250 < o.GetH()) return false;
             if (this.GetAleatState() == o.GetAleatState()) return false;
             return true;
+        }
+        public string GetLocation(GPS gps) {
+            if (gps == null) return "מיקום לא ידוע";
+            else location = gps.CalculateObjectLocation(this);
+            if (location == null) return "מיקום לא ידוע";
+            else return location.Latitude + " צפון " + location.Longitude + " מערב ";
         }
     }
 }

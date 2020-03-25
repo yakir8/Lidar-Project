@@ -10,7 +10,7 @@ namespace LidarApplication {
         // Client  socket.  
         public Socket workSocket = null;
         // Size of receive buffer.  
-        public const int BufferSize = 5048;
+        public const int BufferSize = 2048;
         // Receive buffer.  
         public byte[] buffer = new byte[BufferSize];
         // Received data string.  
@@ -22,23 +22,12 @@ namespace LidarApplication {
         public static ManualResetEvent allDone = new ManualResetEvent(false);
         private Thread listenerThread;
 
+        private Timer timer;
         private int port;
         private IPAddress ipAddress;
         private Action<string> ReceiveHandler;
         private Func<string> SendHandler;
-
-        public SocketAsync(string ip, int port, Action<string> ReceiveHandler, Func<string> SendHandler) {
-            this.ipAddress = IPAddress.Parse(ip);
-            this.port = port;
-            this.ReceiveHandler = ReceiveHandler;
-            this.SendHandler = SendHandler;
-        }
-
-        public SocketAsync(string ip, int port, Action<string> ReceiveHandler) {
-            this.ipAddress = IPAddress.Parse(ip);
-            this.port = port;
-            this.ReceiveHandler = ReceiveHandler;
-        }
+        private Action<bool> TimeOut;
 
         public SocketAsync(IPAddress ip, int port, Action<string> ReceiveHandler, Func<string> SendHandler) {
             this.ipAddress = ip;
@@ -46,13 +35,23 @@ namespace LidarApplication {
             this.ReceiveHandler = ReceiveHandler;
             this.SendHandler = SendHandler;
         }
-
-        public SocketAsync(IPAddress ip, int port, Action<string> ReceiveHandler) {
-            this.ipAddress = ip;
+        public SocketAsync(string ip, int port, Action<string> ReceiveHandler, Func<string> SendHandler) {
+            this.ipAddress = IPAddress.Parse(ip);
+            this.port = port;
+            this.ReceiveHandler = ReceiveHandler;
+            this.SendHandler = SendHandler;
+        }
+        public SocketAsync(string ip, int port, Action<string> ReceiveHandler) {
+            this.ipAddress = IPAddress.Parse(ip);
             this.port = port;
             this.ReceiveHandler = ReceiveHandler;
         }
-
+        public SocketAsync(IPAddress ip, int port, Action<string> ReceiveHandler, Action<bool> TimeOut) {
+            this.ipAddress = ip;
+            this.port = port;
+            this.ReceiveHandler = ReceiveHandler;
+            this.TimeOut = TimeOut;
+        }
         public void StartListening() {
             try {
                 IPEndPoint localEndPoint = new IPEndPoint(ipAddress, port);
@@ -63,13 +62,18 @@ namespace LidarApplication {
                 listener.Listen(100);
                 listenerThread = new Thread(() => {
                     while (true) {
+                        if (TimeOut != null)
+                            timer = new Timer(OnTimeOut, null, 1000, Timeout.Infinite);
                         // Set the event to nonsignaled state.  
                         allDone.Reset();
                         // Start an asynchronous socket to listen for connections.  
-                        Console.WriteLine("Waiting for a connection...");
                         listener.BeginAccept(new AsyncCallback(AcceptCallback), listener);
                         // Wait until a connection is made before continuing.  
                         allDone.WaitOne();
+                        if (timer != null) {
+                            TimeOut(false);
+                            timer.Dispose();
+                        }
                     }
                 });
                 listenerThread.Start();
@@ -78,11 +82,11 @@ namespace LidarApplication {
             }
             Console.WriteLine("\nPress ENTER to continue...");
             Console.Read();
-
         }
-
-        public void StopListening() { if (listenerThread != null) listenerThread.Abort(); }
-
+        public void StopListening() {
+            if (listenerThread != null) listenerThread.Abort();
+            if (timer != null) timer.Dispose();
+        }
         public void AcceptCallback(IAsyncResult ar) {
             // Signal the main thread to continue.  
             allDone.Set();
@@ -97,7 +101,6 @@ namespace LidarApplication {
             handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0,
                 new AsyncCallback(ReadCallback), state);
         }
-
         public void ReadCallback(IAsyncResult ar) {
             String content = String.Empty;
 
@@ -114,14 +117,19 @@ namespace LidarApplication {
 
                 // Check for end-of-file tag. If it is not there, read more data.  
                 content = state.sb.ToString();
-
-                ReceiveHandler(content);
-
-                // Echo the data back to the client.  
-                if (SendHandler != null) Send(handler, SendHandler());
+                const char etx = (char)3;
+                if (content.Contains(etx.ToString())) {
+                    ReceiveHandler(content);
+                    // Echo the data back to the client.  
+                    if (SendHandler != null) Send(handler, SendHandler());
+                }
+                else {
+                    // Not all data received. Get more.  
+                    handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0,
+                    new AsyncCallback(ReadCallback), state);
+                }
             }
         }
-
         private void Send(Socket handler, string data) {
             // Convert the string data to byte data using ASCII encoding.  
             byte[] byteData = Encoding.ASCII.GetBytes(data);
@@ -130,7 +138,6 @@ namespace LidarApplication {
             handler.BeginSend(byteData, 0, byteData.Length, 0,
                 new AsyncCallback(SendCallback), handler);
         }
-
         private void SendCallback(IAsyncResult ar) {
             try {
                 // Retrieve the socket from the state object.  
@@ -147,6 +154,6 @@ namespace LidarApplication {
                 Console.WriteLine(e.ToString());
             }
         }
-
+        void OnTimeOut(object obj) => TimeOut(true);
     }
 }

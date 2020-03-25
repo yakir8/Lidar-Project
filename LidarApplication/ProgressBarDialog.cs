@@ -20,7 +20,9 @@ namespace LidarApplication {
             try {
                 progressBar.Increment(value);
             } catch (InvalidOperationException) {
-                MethodInvoker action = delegate { progressBar.Increment(value); };
+                MethodInvoker action = delegate {
+                    progressBar.Increment(0);
+                };
                 progressBar.BeginInvoke(action);
             }
         }

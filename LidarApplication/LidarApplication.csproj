@@ -50,11 +50,20 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Boot.cs">
+    <Compile Include="Location.cs" />
+    <Compile Include="Geodesy.cs" />
+    <Compile Include="GPS.cs" />
+    <Compile Include="MainMenu\DriverActionBar.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Boot.Designer.cs">
-      <DependentUpon>Boot.cs</DependentUpon>
+    <Compile Include="MainMenu\DriverActionBar.Designer.cs">
+      <DependentUpon>DriverActionBar.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MainMenu\MainMenu.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MainMenu\MainMenu.Designer.cs">
+      <DependentUpon>MainMenu.cs</DependentUpon>
     </Compile>
     <Compile Include="ChangeIP.cs">
       <SubType>Form</SubType>
@@ -65,12 +74,27 @@
     <Compile Include="Configuration.cs" />
     <Compile Include="Lidar.cs" />
     <Compile Include="LocalIP.cs" />
+    <Compile Include="MainMenu\NetworkSettings.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MainMenu\NetworkSettings.Designer.cs">
+      <DependentUpon>NetworkSettings.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MainMenu\BaseSubMenu.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Obstacle.cs" />
     <Compile Include="OperatorMode.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="OperatorMode.Designer.cs">
       <DependentUpon>OperatorMode.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MainMenu\OverviewSettings.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MainMenu\OverviewSettings.Designer.cs">
+      <DependentUpon>OverviewSettings.cs</DependentUpon>
     </Compile>
     <Compile Include="PingReply.cs" />
     <Compile Include="Program.cs" />
@@ -81,13 +105,58 @@
       <DependentUpon>ProgressBarDialog.cs</DependentUpon>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="MainMenu\SensorSettings.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MainMenu\SensorSettings.Designer.cs">
+      <DependentUpon>SensorSettings.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MainMenu\SerialSettings.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MainMenu\SerialSettings.Designer.cs">
+      <DependentUpon>SerialSettings.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MainMenu\ServerSettings.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MainMenu\ServerSettings.Designer.cs">
+      <DependentUpon>ServerSettings.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MainMenu\ServerActionBar.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MainMenu\ServerActionBar.Designer.cs">
+      <DependentUpon>ServerActionBar.cs</DependentUpon>
+    </Compile>
     <Compile Include="SocketAsync.cs" />
     <Compile Include="SocketSync.cs" />
-    <EmbeddedResource Include="Boot.resx">
-      <DependentUpon>Boot.cs</DependentUpon>
+    <Compile Include="MainMenu\WindowSettings.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MainMenu\WindowSettings.Designer.cs">
+      <DependentUpon>WindowSettings.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Terminal.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Terminal.Designer.cs">
+      <DependentUpon>Terminal.cs</DependentUpon>
+    </Compile>
+    <EmbeddedResource Include="MainMenu\DriverActionBar.resx">
+      <DependentUpon>DriverActionBar.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MainMenu\MainMenu.resx">
+      <DependentUpon>MainMenu.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="ChangeIP.resx">
       <DependentUpon>ChangeIP.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MainMenu\NetworkSettings.resx">
+      <DependentUpon>NetworkSettings.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MainMenu\OverviewSettings.resx">
+      <DependentUpon>OverviewSettings.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="OperatorMode.resx">
       <DependentUpon>OperatorMode.cs</DependentUpon>
@@ -104,6 +173,24 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <EmbeddedResource Include="MainMenu\SensorSettings.resx">
+      <DependentUpon>SensorSettings.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MainMenu\SerialSettings.resx">
+      <DependentUpon>SerialSettings.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MainMenu\ServerSettings.resx">
+      <DependentUpon>ServerSettings.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MainMenu\WindowSettings.resx">
+      <DependentUpon>WindowSettings.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MainMenu\ServerActionBar.resx">
+      <DependentUpon>ServerActionBar.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Terminal.resx">
+      <DependentUpon>Terminal.cs</DependentUpon>
+    </EmbeddedResource>
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -116,6 +203,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="LidarConfig.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

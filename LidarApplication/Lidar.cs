@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
@@ -79,14 +80,61 @@ namespace LidarApplication {
                 form.Invoke(new Action(() => form.Close()));
             });
             thread.IsBackground = true;
+            //thread.Start();
+            //form.ShowDialog();
+            Succeeded = LoadLidarConfigFromFile();
+            return Succeeded;
+        }
+
+        public bool LoadLidarConfigFromFile() {
+            bool Succeeded = false;
+            List<string> sendData = new List<string>();
+            IPAddress my = LocalIP.GetLocalIP(LOCAL_IP_TYPE.LIDAR);
+            SocketSync socket = new SocketSync(my, IP, PORT);
+            string path = AppDomain.CurrentDomain.BaseDirectory + @"\LidarConfig.txt";
+            ProgressBarDialog form =
+                new ProgressBarDialog("טוען את המערכת", "מבצע איתחול לחיישן Lidar...");
+            Thread thread = new Thread(() => {
+                if (File.Exists(path)) {
+                    var reader = new StreamReader(path);
+                    while (!reader.EndOfStream) {
+                        string line = reader.ReadLine();
+                        if (line.Contains("SEND")) {
+                            var lst = line.Split('\t');
+                            string temp = "";
+                            temp = lst.Last().Replace("<STX>", ((char)2).ToString());
+                            temp = temp.Replace("<ETX>", ((char)3).ToString());
+                            sendData.Add(temp);
+                        }
+                    }
+                    for (int i = 0; i < sendData.Count; i++) {
+                        Succeeded = socket.SendData(sendData[i]);
+                        form.updateProgressBar(100 / sendData.Count);
+                        Thread.Sleep(150);
+                    }
+                    form.Invoke(new Action(() => form.Close()));
+                }
+                else Console.WriteLine("File not Exists");
+            });
+            thread.IsBackground = true;
             thread.Start();
             form.ShowDialog();
+            if (Succeeded) {
+                Thread t = new Thread(() => {
+                    while (true) {
+                        socket.SendData(sendData.Last());
+                        Thread.Sleep(500);
+                    }
+                });
+                t.IsBackground = true;
+                t.Start();
+            }
             return Succeeded;
         }
 
         public bool CreateDistanceList(string data) {
             Configuration configuration = new Configuration();
-            double point = (configuration.getStopAngle() - configuration.getStartAngle()) / configuration.getResolution();
+            double point = (configuration.getStopAngle() - configuration.getStartAngle()) / configuration.getResolution() + 1;
             List<float> newDist = new List<float>();
             if (data != null && !data.Equals("")) {
                 int start = 0, end = 0;
@@ -97,8 +145,10 @@ namespace LidarApplication {
                 if (telegramList.Count < 2) return false;
                 if (telegramList[0] != "sRA" && telegramList[1] != "LMDscandata") return false;
                 start = telegramList.FindIndex(x => x == "DIST1") + 1;
-                end = telegramList.FindIndex(x => x == "DIST2");
-                start += 4;
+                //end = telegramList.FindIndex(x => x == "DIST2");
+                end = telegramList.FindIndex(x => x == "RSSI1");
+                //start += 4;
+                start += 5;
                 if (start == end) return false;
                 for (int i = start; i < end; i++) newDist.Add(convertDistance(telegramList[i]));
                 if (newDist.Count != point) return false;
@@ -136,10 +186,10 @@ namespace LidarApplication {
                 b
             */
             Configuration configuration = new Configuration();
-            int beta = configuration.getAngle();
+            int beta = configuration.getAngleSetup();
             double radians = beta * (Math.PI / 180);
-            int c = Convert.ToInt32(dist, 16); 
-            float a = (float) (c * Math.Sin(radians));
+            int c = Convert.ToInt32(dist, 16);
+            float a = (float)(c * Math.Sin(radians));
             return a;
         }
 
@@ -166,10 +216,10 @@ namespace LidarApplication {
                  b
               */
             Configuration configuration = new Configuration();
-            int a = configuration.getHeight() * 10; // convert cm to millimeters
+            int a = configuration.getSensorHeightSetup() * 10; // convert cm to millimeters
             // α = 180 - 90 - β
             // β = lidar setup angle
-            int alpha = 90 - configuration.getAngle(); 
+            int alpha = 90 - configuration.getAngleSetup();
             double radians = alpha * (Math.PI / 180);
             float b = (float)(a / Math.Tan(radians));
             return b > 40000 ? 40000 : b; // Maximum range for lidar is 40 meter (40000 millimeters)
