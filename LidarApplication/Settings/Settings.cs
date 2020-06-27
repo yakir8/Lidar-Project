@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace LidarApplication {
-    public partial class MainMenu : Form {
+    public partial class Settings : Form {
         enum Settings_Mode {Server,Driver }
         private Configuration savedConfig = new Configuration();
         private Configuration userConfig = new Configuration();
@@ -21,7 +21,7 @@ namespace LidarApplication {
         private Form activeActionBar = null;
 
 
-        public MainMenu() {
+        public Settings() {
             InitializeComponent();
             ShowSubMenu();
             openSubMenu(new OverviewSettings(userConfig), Settings_Mode.Driver);
@@ -80,12 +80,13 @@ namespace LidarApplication {
             childForm.TopLevel = false;
             childForm.FormBorderStyle = FormBorderStyle.None;
             childForm.Dock = DockStyle.Fill;
+            panelSettings.AutoScrollMinSize = new Size(0, childForm.Height);
             panelSettings.Controls.Add(childForm);
             panelSettings.Tag = childForm;
             childForm.BringToFront();
             childForm.Show();
             if (mode == Settings_Mode.Server)
-                openActionBar(new ServerActionBar());
+                openActionBar(new ServerActionBar(this));
             else
                 openActionBar(new DriverActionBar(savedConfig, userConfig, this, activeForm));
         }

@@ -11,8 +11,11 @@ using System.Windows.Forms;
 
 namespace LidarApplication {
     public partial class ServerActionBar : Form {
-        public ServerActionBar() {
+
+        private Settings mainMenu;
+        public ServerActionBar(Settings mainMenu) {
             InitializeComponent();
+            this.mainMenu = mainMenu;
         }
 
         private bool getExternalIpAddress() {
@@ -35,8 +38,8 @@ namespace LidarApplication {
 
         private void btnStartServer_Click(Object sender, EventArgs e) {
             OperatorMode operatorMode = new OperatorMode(OperatingMode.SERVER);
-            this.Hide();
-            operatorMode.Closed += (s, args) => this.Close();
+            mainMenu.Hide();
+            operatorMode.Closed += (s, args) => mainMenu.Show();
             operatorMode.Show();
         }
     }

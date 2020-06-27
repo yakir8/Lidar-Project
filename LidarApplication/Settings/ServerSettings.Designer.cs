@@ -29,31 +29,31 @@
             // 
             // serverIpAddress
             // 
-            this.serverIpAddress.Location = new System.Drawing.Point(66, 60);
+            this.serverIpAddress.Location = new System.Drawing.Point(180, 209);
             this.serverIpAddress.Margin = new System.Windows.Forms.Padding(11, 8, 11, 8);
             this.serverIpAddress.Name = "serverIpAddress";
             this.serverIpAddress.ReadOnly = true;
             this.serverIpAddress.RightToLeft = System.Windows.Forms.RightToLeft.No;
-            this.serverIpAddress.Size = new System.Drawing.Size(360, 29);
+            this.serverIpAddress.Size = new System.Drawing.Size(190, 29);
             this.serverIpAddress.TabIndex = 15;
             this.serverIpAddress.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
             // label8
             // 
-            this.label8.AutoSize = true;
-            this.label8.Location = new System.Drawing.Point(469, 65);
+            this.label8.Location = new System.Drawing.Point(373, 209);
             this.label8.Margin = new System.Windows.Forms.Padding(11, 0, 11, 0);
             this.label8.Name = "label8";
-            this.label8.Size = new System.Drawing.Size(121, 22);
+            this.label8.Size = new System.Drawing.Size(121, 29);
             this.label8.TabIndex = 14;
             this.label8.Text = "כתובת IP שרת";
+            this.label8.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // ServerSettings
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(11F, 22F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.GradientActiveCaption;
-            this.ClientSize = new System.Drawing.Size(696, 462);
+            this.ClientSize = new System.Drawing.Size(696, 551);
             this.Controls.Add(this.serverIpAddress);
             this.Controls.Add(this.label8);
             this.Font = new System.Drawing.Font("Arial", 14.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(177)));

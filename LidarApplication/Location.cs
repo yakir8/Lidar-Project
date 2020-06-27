@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace LidarApplication {
-    class Location {
+    public class Location {
         public double Latitude;
         public double Longitude;
 

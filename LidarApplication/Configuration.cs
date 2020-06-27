@@ -11,6 +11,13 @@ namespace LidarApplication {
         private Dictionary<string, dynamic> data = new Dictionary<string, dynamic>();
         private string path = AppDomain.CurrentDomain.BaseDirectory + @"\configuration.csv";
 
+        static public string[] Parity = { "ללא", "אי-זוגי", "זוגי", "סימון", "רווח" };
+        static public string[] BaudRate = { "9600", "14400", "19200", "38400", "57600", "115200", "128000" };
+        static public string[] DataType = {
+                "מידע גולמי מהחיישן",
+                "התראות בלבד",
+            };
+
         public Configuration() {
             LoadConfiguration();
         }
@@ -44,10 +51,19 @@ namespace LidarApplication {
         public int getSideLowAlert() { return data["Side Low Alert"]; }
         public void setSideLowAlert(int value) { data["Side Low Alert"] = value; }
 
-        public int getHeightHighAlert() { return data["Height High Alert"]; }
-        public void setHeightHighAlert(int value) { data["Height High Alert"] = value; }
-        public int getHeightLowAlert() { return data["Height Low Alert"]; }
-        public void setHeightLowAlert(int value) { data["Height Low Alert"] = value; }
+        public int getHoleHighAlert() { return data["Hole High Alert"]; }
+        public void setHoleHighAlert(int value) { data["Hole High Alert"] = value; }
+        public int getHoleLowAlert() { return data["Hole Low Alert"]; }
+        public void setHoleLowAlert(int value) { data["Hole Low Alert"] = value; }
+
+        public int getMinimumHeightDetected() { return data["Minimum Height Detected"]; }
+        public void setMinimumHeightDetected(int value) { data["Minimum Height Detected"] = value; }
+
+        public bool getGridEnable() { return data["Grid Enable"]; }
+        public void setGridEnable(bool value) { data["Grid Enable"] = value; }
+
+        public bool getActiveZoneEnable() { return data["Active Zone Enable"]; }
+        public void setActiveZoneEnable(bool value) { data["Active Zone Enable"] = value; }
         #endregion
 
         #region Serial Ports Setting For Controller
@@ -57,6 +73,8 @@ namespace LidarApplication {
         public void setControllerBaudRate(int value) { data["Controller Baud Rate"] = value; }
         public string getControllerParity() { return data["Controller Parity"]; }
         public void setControllerParity(string value) { data["Controller Parity"] = value; }
+        public string getSerialDataType() { return data["Serial Data Type"]; }
+        public void setSerialDataType(string value) { data["Serial Data Type"] = value; }
         #endregion
 
         #region Serial Ports Setting For GPS
@@ -123,11 +141,20 @@ namespace LidarApplication {
                         case "Side Low Alert":
                             data.Add("Side Low Alert", int.Parse(values[1]));
                             break;
-                        case "Height High Alert":
-                            data.Add("Height High Alert", int.Parse(values[1]));
+                        case "Hole High Alert":
+                            data.Add("Hole High Alert", int.Parse(values[1]));
                             break;
-                        case "Height Low Alert":
-                            data.Add("Height Low Alert", int.Parse(values[1]));
+                        case "Hole Low Alert":
+                            data.Add("Hole Low Alert", int.Parse(values[1]));
+                            break;
+                        case "Minimum Height Detected":
+                            data.Add("Minimum Height Detected", int.Parse(values[1]));
+                            break;
+                        case "Grid Enable":
+                            data.Add("Grid Enable", bool.Parse(values[1]));
+                            break;
+                        case "Active Zone Enable":
+                            data.Add("Active Zone Enable", bool.Parse(values[1]));
                             break;
                         #endregion
                         #region Serial Ports Setting For Controller
@@ -139,6 +166,9 @@ namespace LidarApplication {
                             break;
                         case "Controller Parity":
                             data.Add("Controller Parity", values[1]);
+                            break;
+                        case "Serial Data Type":
+                            data.Add("Serial Data Type", values[1]);
                             break;
                         #endregion
                         #region Serial Ports Setting For GPS
@@ -173,7 +203,7 @@ namespace LidarApplication {
                 }
                 reader.Close();
             }
-            else {
+            else { // file not exists loading the default settings
                 #region Sensor Physical Information
                 data.Add("Height Setup", 100);
                 data.Add("Angle Setup", 85);
@@ -191,13 +221,19 @@ namespace LidarApplication {
                 data.Add("Side High Alert", 100);
                 data.Add("Side Low Alert", 150);
 
-                data.Add("Height High Alert", 30);
-                data.Add("Height Low Alert", 50);
+                data.Add("Hole High Alert", 50);
+                data.Add("Hole Low Alert", 30);
+
+                data.Add("Minimum Height Detected", 5);
+
+                data.Add("Grid Enable", true);
+                data.Add("Active Zone Enable", true);
                 #endregion
                 #region Serial Ports Setting For Controller
                 data.Add("Controller COM Name", "כבוי");
                 data.Add("Controller Baud Rate", 115200);
                 data.Add("Controller Parity", "ללא");
+                data.Add("Serial Data Type", "");
                 #endregion
                 #region Serial Ports Setting For GPS
                 data.Add("GPS COM Name", "כבוי");
@@ -205,9 +241,10 @@ namespace LidarApplication {
                 data.Add("GPS Parity", "ללא");
                 #endregion
                 #region Network Setting
-                data.Add("Lidar IP", "192.168.0.1");
+                data.Add("Lidar IP", "10.0.0.40");
                 data.Add("Lidar Port", "2111");
-                data.Add("Lidar Adapter", "כבוי");
+                //data.Add("Lidar Adapter", "כבוי");
+                data.Add("Lidar Adapter", "Ethernet");
                 data.Add("Internt Adapter", "כבוי");
                 data.Add("Server IP", "");
                 #endregion

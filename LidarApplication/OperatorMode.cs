@@ -21,54 +21,195 @@ namespace LidarApplication {
     public partial class OperatorMode : Form {
 
         private const int serverPort = 80;
-        private readonly float maxDist;
-        private readonly int criticalAlert;
-        private readonly int minoricAlert;
         private readonly OperatingMode mode;
 
         private GPS gps;
         private Lidar lidar;
+        private Terminal terminal;
+        private Thread pingThread;
         private SerialPort serialPort;
         private SocketSync sendSocket;
-        private SocketAsync receiveSocket;
-        private Terminal terminal = new Terminal();
+        private ServerSocket receiveSocket;
 
         private List<Obstacle> obstacle = new List<Obstacle>();
         private List<Obstacle> oldObstacle = new List<Obstacle>();
-        private Configuration configuration = new Configuration();
+        private Configuration config = new Configuration();
 
         public OperatorMode(OperatingMode mode) {
             InitializeComponent();
             this.mode = mode;
-            criticalAlert = configuration.getSideHighAlert() * 10;
-            minoricAlert = configuration.getSideLowAlert() * 10;
-            maxDist = Lidar.GetMaxDistance();
-            if (mode == OperatingMode.DRIVER)
-                InitializeDriverMode();
-            else InitializeServerMode();
+            DistLabelSetup();
+            terminal = new Terminal(lidar);
         }
 
+        private void DistLabelSetup() {
+            if (config.getGridEnable()) {
+                float ratio = GraphicLidar.GetRatioHeightWidth(config);
+                #region Laidar Output Label
+                float maxDist = (config.getSideLowAlert() * 10) / GraphicLidarOutput.Zoom;
+                float distXStep = (maxDist / 1000) / 3;
+                float distYStep = ((maxDist / ratio) / 1000) / 3;
+                DistFrontYLabel1.Text = (distYStep).ToString("0.00");
+                DistFrontYLabel1.BackColor = Color.Transparent;
+                DistFrontYLabel2.Text = (distYStep * 2).ToString("0.00");
+                DistFrontYLabel2.BackColor = Color.Transparent;
+                DistFrontYLabel3.Text = (distYStep * 3).ToString("0.00");
+                DistFrontYLabel3.BackColor = Color.Transparent;
+
+                DistFrontXLabel1.Text = (-distXStep * 3).ToString("0.00");
+                DistFrontXLabel1.BackColor = Color.Transparent;
+                DistFrontXLabel2.Text = (-distXStep * 2).ToString("0.00");
+                DistFrontXLabel2.BackColor = Color.Transparent;
+                DistFrontXLabel3.Text = (-distXStep).ToString("0.00");
+                DistFrontXLabel3.BackColor = Color.Transparent;
+                DistFrontXLabel4.Text = (distXStep).ToString("0.00");
+                DistFrontXLabel4.BackColor = Color.Transparent;
+                DistFrontXLabel5.Text = (distXStep * 2).ToString("0.00");
+                DistFrontXLabel5.BackColor = Color.Transparent;
+                DistFrontXLabel6.Text = (distXStep * 3).ToString("0.00");
+                DistFrontXLabel6.BackColor = Color.Transparent;
+                #endregion
+
+                #region Lidar Alert Label
+                float maxDisSide = (config.getSideLowAlert() * 10) / GraphicLidarAlert.Zoom;
+                float maxDisFront = (config.getFrontLowAlert() * 10) / GraphicLidarAlert.Zoom;
+                distXStep = (maxDisSide / 1000) / 3;
+                distYStep = (maxDisFront / 1000) / 3;
+                if (maxDisSide / maxDisFront < ratio) {
+                    float RatioFactor = (maxDisFront * ratio) / maxDisSide;
+                    distXStep = ((maxDisSide * RatioFactor) / 1000) / 3;
+                }
+                else if (maxDisSide / maxDisFront > ratio) {
+                    float RatioFactor = maxDisSide / (maxDisFront * ratio);
+                    distYStep = ((maxDisFront * RatioFactor) / 100) / 3;
+                }
+                DistTopYLabel1.Text = (distYStep).ToString("0.00");
+                DistTopYLabel1.BackColor = Color.Transparent;
+                DistTopYLabel2.Text = (distYStep * 2).ToString("0.00");
+                DistTopYLabel2.BackColor = Color.Transparent;
+                DistTopYLabel3.Text = (distYStep * 3).ToString("0.00");
+                DistTopYLabel3.BackColor = Color.Transparent;
+
+                DistTopXLabel1.Text = (-distXStep * 3).ToString("0.00");
+                DistTopXLabel1.BackColor = Color.Transparent;
+                DistTopXLabel2.Text = (-distXStep * 2).ToString("0.00");
+                DistTopXLabel2.BackColor = Color.Transparent;
+                DistTopXLabel3.Text = (-distXStep).ToString("0.00");
+                DistTopXLabel3.BackColor = Color.Transparent;
+                DistTopXLabel4.Text = (distXStep).ToString("0.00");
+                DistTopXLabel4.BackColor = Color.Transparent;
+                DistTopXLabel5.Text = (distXStep * 2).ToString("0.00");
+                DistTopXLabel5.BackColor = Color.Transparent;
+                DistTopXLabel6.Text = (distXStep * 3).ToString("0.00");
+                DistTopXLabel6.BackColor = Color.Transparent;
+                #endregion
+            }
+            else {
+                #region Laidar Output Label
+                DistFrontYLabel1.Visible = false;
+                DistFrontYLabel2.Visible = false;
+                DistFrontYLabel3.Visible = false;
+
+                DistFrontXLabel1.Visible = false;
+                DistFrontXLabel2.Visible = false;
+                DistFrontXLabel3.Visible = false;
+                DistFrontXLabel4.Visible = false;
+                DistFrontXLabel5.Visible = false;
+                DistFrontXLabel6.Visible = false;
+                #endregion
+
+                #region Lidar Alert Label
+                DistTopYLabel1.Visible = false;
+                DistTopYLabel2.Visible = false;
+                DistTopYLabel3.Visible = false;
+
+                DistTopXLabel1.Visible = false;
+                DistTopXLabel2.Visible = false;
+                DistTopXLabel3.Visible = false;
+                DistTopXLabel4.Visible = false;
+                DistTopXLabel5.Visible = false;
+                DistTopXLabel6.Visible = false;
+                #endregion
+            }
+        }
+
+        #region Driver Mode
         private void InitializeDriverMode() {
-            serverIP.Text = configuration.getServerIp();
-            string lidarIP = configuration.getLidarIp();
-            string lidarPort = configuration.getLidarPort();
-            lidar = new Lidar(lidarIP, int.Parse(lidarPort));
-            if (configuration.getControllerComName() != "כבוי")
+            serverIP.Text = config.getServerIp();
+            string lidarIP = config.getLidarIp();
+            string lidarPort = config.getLidarPort();
+            lidar = new Lidar(config, lidarIP, int.Parse(lidarPort));
+            if (config.getControllerComName() != "כבוי")
                 SerialPortConnection();
-            if (configuration.getGPSComName() != "כבוי") {
-                gps = new GPS();
+            if (config.getGPSComName() != "כבוי") {
+                gps = new GPS(config);
                 gps.StartListening(GpsStatus);
+                gpsStatusLabel.Text = gps.getStatus();
+                gpsStatusLabel.ForeColor = gps.isFix ? Color.DarkGreen : Color.Red;
             }
             else {
                 activeAlert.Columns.RemoveAt(1);
                 log.Columns.RemoveAt(2);
             }
-            if (configuration.getInterntAdapter() != "כבוי")
-                configServerConnection();
+            if (config.getInterntAdapter() != "כבוי")
+                new Thread(configServerConnection).Start();
         }
 
+        private void LidarInitialization() {
+            int startAngle = config.getStartAngle();
+            int stopAngle = config.getStopAngle();
+            float resolution = config.getResolution();
+            string title = "שגיאה";
+            string errorMsg = "Lidar -נכשל בביצוע אתחול חיישן ה" + "\n\n" + "?האם ברצונך לנסות שוב";
+            while (!lidar.initialization(startAngle, stopAngle, resolution)) {
+                if (MessageBox.Show(errorMsg, title, MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning, MessageBoxDefaultButton.Button1,
+                    MessageBoxOptions.RightAlign) == DialogResult.No) {
+                    Close();
+                    return;
+                }
+            }
+            lidar.StartScan(ReceiveResults, LiderTimeOut);
+        }
+
+        private void SerialPortConnection() {
+            Parity parity = (Parity)Configuration.Parity.ToList().IndexOf(config.getControllerParity());
+            serialPort = new SerialPort(config.getControllerComName(),
+                config.getControllerBaudRate(), parity, 8, StopBits.One);
+            serialPort.Open();
+        }
+
+        private void configServerConnection() {
+            try {
+                bool isSucceeded = false;
+                int vehicleWidth = config.getVehicleWidth();
+                int height = config.getSensorHeightSetup();
+                int angle = config.getAngleSetup();
+                int sideL = config.getSideLowAlert();
+                int sideH = config.getSideHighAlert();
+                int FrontL = config.getFrontLowAlert();
+                int FrontH = config.getFrontHighAlert();
+                int HeightL = config.getHoleLowAlert();
+                int HeightH = config.getHoleHighAlert();
+                string srvConfig = "Config " + height + " " + angle + " " +
+                    vehicleWidth + " " + sideL + " " + sideH + " " +
+                    FrontL + " " + FrontH + " " + HeightL + " " + HeightH;
+                IPAddress server = IPAddress.Parse(config.getServerIp());
+                IPAddress my = LocalIP.GetLocalIP(LOCAL_IP_TYPE.INTERNET);
+                if (my == null || server == null) throw new ProtocolViolationException();
+                sendSocket = new SocketSync(my, server, serverPort, ServerTimeOut);
+                isSucceeded = sendSocket.Connect();
+                if (isSucceeded) isSucceeded = sendSocket.Send(srvConfig, false);
+                ServerTimeOut(!isSucceeded);
+            } catch (Exception e) {
+                Console.WriteLine(e);
+            }
+        }
+        #endregion
+
+        #region Server Mode
         private void InitializeServerMode() {
-            lidar = new Lidar();
+            lidar = new Lidar(config);
             lidarStatus.Hide();
             lidarStatusLabel.Hide();
             ReplaceIP.Hide();
@@ -77,60 +218,93 @@ namespace LidarApplication {
                 socket.Connect("8.8.8.8", 65530);
                 serverLocalIP = (socket.LocalEndPoint as IPEndPoint).Address;
             }
+
             clearLog.Location = new Point(clearLog.Location.X, clearLog.Location.Y - 40);
             saveLog.Location = new Point(saveLog.Location.X, saveLog.Location.Y - 40);
-            serverStatus.Location = new Point(serverStatus.Location.X, serverStatus.Location.Y - 25);
-            serverStatusLabel.Location = new Point(serverStatusLabel.Location.X, serverStatusLabel.Location.Y - 25);
-            serverIP.Location = new Point(serverIP.Location.X, serverIP.Location.Y - 25);
-            serverIPLabel.Location = new Point(serverIPLabel.Location.X, serverIPLabel.Location.Y - 25);
-            Thread pingThread = new Thread(ServerPing);
+            serverStatus.Location = new Point(serverStatus.Location.X, serverStatus.Location.Y - 35);
+            serverStatusLabel.Location = new Point(serverStatusLabel.Location.X, serverStatusLabel.Location.Y - 35);
+            serverIP.Location = new Point(serverIP.Location.X, serverIP.Location.Y - 40);
+            serverIPLabel.Location = new Point(serverIPLabel.Location.X, serverIPLabel.Location.Y - 40);
+            tableLayoutPanel1.SetColumnSpan(btnTerminal, 3);
+            tableLayoutPanel1.SetColumn(btnTerminal, 0);
+
+            receiveSocket = new ServerSocket(serverLocalIP, serverPort, ReceiveResults);
+            receiveSocket.StartListening();
+
+            pingThread = new Thread(ServerPing);
             pingThread.IsBackground = true;
             pingThread.Start();
-            receiveSocket = new SocketAsync(serverLocalIP, serverPort, ReceiveResults, LiderTimeOut);
-            receiveSocket.StartListening();
         }
-
-        private void LidarInitialization() {
-            while (!lidar.initialization(configuration.getStartAngle(),
-                configuration.getStopAngle(), configuration.getResolution())) {
-                DialogResult dialogResult = MessageBox.Show(
-                    "Lidar -נכשל בביצוע אתחול חיישן ה" + "\n\n" + "?האם ברצונך לנסות שוב",
-                    "שגיאה",
-                    MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button1,
-                    MessageBoxOptions.RightAlign);
-                if (dialogResult == DialogResult.No) {
-                    Close();
-                    return;
-                }
+        private void DecodeConfigFromDriver(string strConfig) {
+            /* configArr[0] = Config key word
+             * configArr[1] = Sensor Height Setup
+             * configArr[2] = Sensor Angle Setup
+             * configArr[3] = Vehicle Width
+             * configArr[4] = Side Low Alert
+             * configArr[5] = Side High Alert
+             * configArr[6] = Front Low Alert
+             * configArr[7] = Front High Alert
+             * configArr[8] = Height Low Alert
+             * configArr[9] = Height High Alert
+             */
+            string[] configArr = strConfig.Split(' ');
+            if (configArr.Count() == 10) {
+                config.setSensorHeightSetup(int.Parse(configArr[1]));
+                config.setAngleSetup(int.Parse(configArr[2]));
+                config.setVehicleWidth(int.Parse(configArr[3]));
+                config.setSideLowAlert(int.Parse(configArr[4]));
+                config.setSideHighAlert(int.Parse(configArr[5]));
+                config.setFrontLowAlert(int.Parse(configArr[6]));
+                config.setFrontHighAlert(int.Parse(configArr[7]));
+                config.setHoleLowAlert(int.Parse(configArr[8]));
+                config.setHoleHighAlert(int.Parse(configArr[9]));
+                Invoke(new MethodInvoker(DistLabelSetup));
             }
-            receiveSocket = new SocketAsync(LocalIP.GetLocalIP(LOCAL_IP_TYPE.LIDAR),
-                Convert.ToInt32(configuration.getLidarPort()), ReceiveResults, LiderTimeOut);
-            lidar.StartScan();
-            receiveSocket.StartListening();
+            lidar = new Lidar(config);
         }
+        #endregion
 
+        #region Scan Data Handle
         private void PastResultsOn(string data) {
             // send data to controller
-            if (serialPort != null)
+            if (serialPort != null && serialPort.IsOpen)
+                new Thread(() => {
+                    if (config.getSerialDataType() == Configuration.DataType[0])
+                        serialPort.Write(data);
+                    else if (config.getSerialDataType() == Configuration.DataType[1]) {
+                        foreach (var it in obstacle.Select((x, i) => new { Value = x, Index = i })) {
+                            StringBuilder str = new StringBuilder("מסד: " + (it.Index + 1).ToString() + ",");
+                            if (gps != null) str.Append("קורדינטות: " + it.Value.GetLocation(gps) + ",");
+                            str.Append("זווית: " + it.Value.GetAngle() + ",");
+                            str.Append("צד" + it.Value.GetSideDistance() + ",");
+                            str.Append("מרחק" + it.Value.GetFrontDistance() + ",");
+                            str.Append("גובה מתחת לחיישן" + it.Value.GetHeight() + ",");
+                            str.AppendLine("רמת התראה" + it.Value.GetAleatLevel() + ".");
+                            serialPort.Write(str.ToString());
+                        }
+                    }
+                }).Start();
+            // send data to server
+            if (sendSocket != null)
                 new Thread(() => {
                     string serverData = data;
                     if (gps != null) serverData += " Location " + gps.getLocation().ToString();
                     if (gps != null) serverData += " Azimuth " + gps.getAzimuth();
-                    if (serialPort.IsOpen) serialPort.Write(serverData);
+                    if (serverStatus.Text == "מחובר") sendSocket.Send(serverData, false);
                 }).Start();
-            // send data to server
-            if (sendSocket != null)
-                new Thread(() => { sendSocket.SendData(data); }).Start();
         }
 
         private void ReceiveDriverResults(string data) {
-            List<string> resultsList = data.Split(' ').ToList();
-            int index = resultsList.FindIndex(x => x == "Location") + 1;
-            Location location = new Location(double.Parse(resultsList[index]),
-                double.Parse(resultsList[index + 1]));
-            index = resultsList.FindIndex(x => x == "Azimuth") + 1;
-            double azimuth = double.Parse(resultsList[index]);
-            gps = new GPS(location, azimuth);
+            if (data.Contains("Config")) DecodeConfigFromDriver(data);
+            else if (data.Contains("Location")) {
+                List<string> resultsList = data.Split(' ').ToList();
+                int index = resultsList.FindIndex(x => x == "Location") + 1;
+                Location location = new Location(double.Parse(resultsList[index]),
+                    double.Parse(resultsList[index + 1]));
+                index = resultsList.FindIndex(x => x == "Azimuth") + 1;
+                double azimuth = double.Parse(resultsList[index]);
+                gps = new GPS(location, azimuth);
+            }
         }
 
         private void ReceiveResults(string data) {
@@ -138,17 +312,12 @@ namespace LidarApplication {
             else if (mode == OperatingMode.SERVER) ReceiveDriverResults(data);
             try {
                 lidar.CreateDistanceList(data);
-                List<Obstacle> ScanResult = lidar.GetScanResult();
-                float resolution = configuration.getResolution();
-                this.Invoke(new MethodInvoker(() => {
-                    this.Refresh();
-                    activeAlert.Items.Clear();
-                }));
+                this.Invoke(new MethodInvoker(() => { this.Refresh(); }));
                 oldObstacle.Clear();
                 // copy obstacle to oldObstacle
                 oldObstacle.AddRange(obstacle);
                 obstacle.Clear();
-                BuildActiveAlertList(ScanResult);
+                BuildActiveAlertList(lidar.GetScanResult());
                 BuildLogList();
                 if (terminal.Visible)
                     Invoke(new MethodInvoker(() => terminal.insertData(data)));
@@ -158,24 +327,27 @@ namespace LidarApplication {
         }
 
         private void BuildActiveAlertList(List<Obstacle> ScanResult) {
-            float resolution = configuration.getResolution();
+            float resolution = config.getResolution();
+            List<ListViewItem> lst = new List<ListViewItem>();
             //find obstacle in the active zone
-            for (int i = 0; i < ScanResult.Count; i++) {
-                if (ScanResult[i].InActiveZone()) {
+            ScanResult.ForEach((result) => {
+                if (result.isDetectable()) {
+                    float angle = result.GetAngles().Last();
+                    float radius = result.GetRadius().Last();
                     // If this is a near sample it is the same obstacle
-                    if (obstacle.Any() && obstacle.Last().GetAngles().Last() == ((i - 1) * resolution)) {
-                        obstacle.Last().AddAngle(i * resolution);
-                        obstacle.Last().AddDistance(ScanResult[i].GetH());
-                    }
+                    if (obstacle.Any() && (angle - obstacle.Last().GetAngles().Last()) <= 1) 
+                        obstacle.Last().AddPoint(angle, radius);
                     // new obstacle in the active zone
-                    else obstacle.Add(new Obstacle(i * resolution, ScanResult[i].GetH()));
+                    else obstacle.Add(new Obstacle(config, angle, result.GetRadius().Last()));
                 }
-            }
+            });
+            for (int i = 0; i < obstacle.Count; i++)
+                if (!obstacle[i].InActiveZone()) obstacle.RemoveAt(i);
             // display all obstacle in activeAlert listview 
             foreach (var it in obstacle.Select((x, i) => new { Value = x, Index = i })) {
-                ListViewItem lvi = new ListViewItem(it.Index.ToString());
+                ListViewItem lvi = new ListViewItem((it.Index + 1).ToString());
                 if (gps != null) lvi.SubItems.Add(it.Value.GetLocation(gps));
-                lvi.SubItems.Add(it.Value.GetAverageAngle());
+                lvi.SubItems.Add(it.Value.GetAngle());
                 lvi.SubItems.Add(it.Value.GetSideDistance());
                 lvi.SubItems.Add(it.Value.GetFrontDistance());
                 lvi.SubItems.Add(it.Value.GetHeight());
@@ -184,17 +356,23 @@ namespace LidarApplication {
                     lvi.Font = new Font(activeAlert.Font, FontStyle.Bold);
                     lvi.ForeColor = Color.Red;
                 }
-                this.Invoke(new MethodInvoker(() => { activeAlert.Items.Add(lvi); }));
+                lst.Add(lvi);
             }
+            if (!this.IsDisposed)
+                Invoke(new MethodInvoker(() => {
+                    activeAlert.BeginUpdate();
+                    activeAlert.Items.Clear();
+                    activeAlert.Items.AddRange(lst.ToArray());
+                    activeAlert.EndUpdate();
+                }));
         }
-
         private void BuildLogList() {
             foreach (var it in obstacle) {
                 if (oldObstacle.TrueForAll(old => !it.isEqule(old))) {
                     ListViewItem lvi = new ListViewItem(DateTime.Now.ToString("dd/MM/yyyy"));
                     lvi.SubItems.Add(DateTime.Now.ToString("HH:mm:ss"));
                     if (gps != null) lvi.SubItems.Add(it.GetLocation(gps));
-                    lvi.SubItems.Add(it.GetAverageAngle());
+                    lvi.SubItems.Add(it.GetAngle());
                     lvi.SubItems.Add(it.GetSideDistance());
                     lvi.SubItems.Add(it.GetFrontDistance());
                     lvi.SubItems.Add(it.GetHeight());
@@ -207,85 +385,63 @@ namespace LidarApplication {
                 }
             }
         }
+        #endregion
 
-        private void SerialPortConnection() {
-            Parity parity = Parity.None;
-            switch (configuration.getControllerParity()) {
-                case "רווח":
-                    parity = Parity.Space;
-                    break;
-                case "אי-זוגי":
-                    parity = Parity.Odd;
-                    break;
-                case "ללא":
-                    parity = Parity.None;
-                    break;
-                case "סימון":
-                    parity = Parity.Mark;
-                    break;
-                case "זוגי":
-                    parity = Parity.Even;
-                    break;
-            }
-            serialPort = new SerialPort(configuration.getControllerComName(),
-                configuration.getControllerBaudRate(), parity, 8, StopBits.One);
-            serialPort.Open();
-        }
-
-        private bool configServerConnection() {
-            try {
-                IPAddress server = IPAddress.Parse(configuration.getServerIp());
-                IPAddress my = LocalIP.GetLocalIP(LOCAL_IP_TYPE.INTERNET);
-                if (my == null || server == null) throw new ProtocolViolationException();
-                sendSocket = new SocketSync(my, server, serverPort, ServerTimeOut);
-                return true;
-            } catch (Exception e) {
-                MessageBox.Show("לא ניתן להתחבר לשרת.", "שגיאת התחברות",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1,
-                    MessageBoxOptions.RightAlign);
-                Console.WriteLine(e);
-                return false;
-            }
-        }
-
-        #region Communication status
+        #region Communication Status
         private void LiderTimeOut(bool isTimeOut) {
-            Invoke(new MethodInvoker(() => {
-                lidarStatus.Text = isTimeOut ? "החיבור אבד" : "מחובר";
-                lidarStatus.ForeColor = isTimeOut ? Color.Red : Color.DarkGreen;
-            }));
+            if (!this.IsDisposed) {
+                try {
+                    Invoke(new MethodInvoker(() => {
+                        lidarStatus.Text = isTimeOut ? "החיבור אבד" : "מחובר";
+                        lidarStatus.ForeColor = isTimeOut ? Color.Red : Color.DarkGreen;
+                    }));
+                    if (isTimeOut) {
+                        //lidar.Restart(ReceiveResults, LiderTimeOut);
+                    }
+                } catch { }
+            }
         }
 
         private void ServerTimeOut(bool isTimeOut) {
-            Invoke(new MethodInvoker(() => {
-                serverStatus.Text = isTimeOut ? "החיבור אבד" : "מחובר";
-                serverStatus.ForeColor = isTimeOut ? Color.Red : Color.DarkGreen;
-            }));
+            if (!this.IsDisposed) {
+                Invoke(new MethodInvoker(() => {
+                    serverStatus.Text = isTimeOut ? "החיבור אבד" : "מחובר";
+                    serverStatus.ForeColor = isTimeOut ? Color.Red : Color.DarkGreen;
+                }));
+                if (isTimeOut) {
+                    sendSocket.Disconnect();
+                    configServerConnection();
+                    //ServerTimeOut(!sendSocket.Connect());
+                }
+            }
         }
 
         private void GpsStatus() {
-            if (configuration.getGPSComName() != "כבוי") {
-                gpsStatus.Text = gps.getStatus();
-                gpsStatus.ForeColor = gps.isFix ? Color.DarkGreen : Color.Red;
-            }
-            else {
-                gpsStatus.Text = "כבוי";
-                gpsStatus.ForeColor = Color.Black;
-            }
+            Invoke(new MethodInvoker(() => {
+                if (config.getGPSComName() != "כבוי") {
+                    gpsStatusLabel.Text = gps.getStatus();
+                    gpsStatusLabel.ForeColor = gps.isFix ? Color.DarkGreen : Color.Red;
+                }
+                else {
+                    gpsStatusLabel.Text = "כבוי";
+                    gpsStatusLabel.ForeColor = Color.Black;
+                }
+            }));
         }
 
         private void ServerPing() {
             while (true) {
+                Thread.Sleep(1000);
                 Color color = Color.DarkGreen;
                 string status = "מחובר";
-                string ip = "000.000.000";
+                string ip = "000.000.000.000";
                 try {
                     ip = new WebClient().DownloadString("http://icanhazip.com");
                     status = "מחובר";
                     color = Color.DarkGreen;
                 } catch (WebException) {
-                    ip = "000.000.000";
-                    status = "מנותק";
+                    ip = "000.000.000.000";
+                    status = "החיבור אבד";
                     color = Color.Red;
                 }
                 Invoke(new MethodInvoker(() => {
@@ -297,115 +453,68 @@ namespace LidarApplication {
         }
         #endregion
 
-        #region Paint Function
-        private void TopViewBox_Paint(object sender, PaintEventArgs e) { PaintTopView(e); }
-        private void FrontViewBox_Paint(object sender, PaintEventArgs e) { PaintFrontView(e); }
-        private void PaintFrontView(PaintEventArgs e) {
-            Graphics l = e.Graphics;
-            int radios = frontViewBox.Width - 20;
-
-            // calculate vehicle size
-            float heightFactor = (radios / maxDist) * 0.2f;
-            float widthFactor = radios / (maxDist * 2);
-            float vehicleWidth = configuration.getVehicleWidth() * 10 * widthFactor;
-            int vehicleheight = (int)(configuration.getVehicleWidth() * 10 * heightFactor); // convert cm to mm
-
-            int LeftPadding = (frontViewBox.Width - radios) / 2;
-            int TopPadding = (frontViewBox.Height - (radios / 2)) - vehicleheight;
-
-            PaintArc(e, topViewBox.Width, topViewBox.Height, vehicleheight, 1);
-            PaintFrontViewLine(e, radios / 2, radios, LeftPadding, TopPadding);
-            l.FillRectangle(Brushes.Navy, (radios / 2) + LeftPadding - (vehicleWidth / 2),
-                frontViewBox.Height - vehicleheight, vehicleWidth, vehicleheight);
-            l.Dispose();
-        }
-        private void PaintTopView(PaintEventArgs e) {
-            Graphics l = e.Graphics;
-            Pen pen = new Pen(Color.Gray, 1.5f);
-            const float dotRadios = 15;
-            float radios = topViewBox.Width - 20;
-            int LeftPadding = (int)(topViewBox.Width - radios) / 2;
-            int TopPadding = (int)(topViewBox.Height - (radios / 2)) - 10;
-            float heightFactor = (radios / 2) / (configuration.getSideLowAlert() * 10);
-            float widthFactor = radios / (configuration.getSideLowAlert() * 20);
-            float center = topViewBox.Width / 2;
-            List<Obstacle> ScanResult = lidar.GetScanResult();
-
-            PaintArc(e, topViewBox.Width, topViewBox.Height, 10, 4);
-            l.FillEllipse(new SolidBrush(Color.Navy), (topViewBox.Width - dotRadios) / 2,
-                topViewBox.Height - 20, dotRadios, dotRadios);
-            foreach (Obstacle o in ScanResult) {
-                if (o.InActiveZone()) {
-                    SolidBrush brush = o.GetAleatState() == 2 ?
-                        new SolidBrush(Color.DarkRed) : new SolidBrush(Color.Red);
-                    float y = topViewBox.Height - (o.GetH() * heightFactor);
-                    float x = -1 * (o.GetX() * widthFactor - topViewBox.Width) - center;
-                    PaintObstacle(e, brush, (int)(x + LeftPadding), (int)(y + TopPadding));
-                }
-            }
-            l.Dispose();
-        }
-        private void PaintFrontViewLine(PaintEventArgs e, float height, float width,
-            float leftPadding, float topPadding) {
-            List<Obstacle> ScanResult = lidar.GetScanResult();
-            if (ScanResult.Any()) {
-                List<PointF> points = new List<PointF>();
-                float heightFactor = height / maxDist;
-                float widthFactor = width / (maxDist * 2);
-                float center = width / 2;
-                Graphics l = e.Graphics;
-                Pen pen = new Pen(Color.Black, 2f);
-                foreach (Obstacle o in ScanResult) {
-                    float y = height - (o.GetH() * heightFactor);
-                    float x = -1 * (o.GetX() * widthFactor - width) - center;
-                    points.Add(new PointF(x + leftPadding, y + topPadding));
-                }
-                e.Graphics.DrawLines(pen, points.ToArray());
-
-            }
-        }
-        private void PaintArc(PaintEventArgs e, int Width, int Height, int y, int NumberOfCircle) {
-            Graphics l = e.Graphics;
-            int radios = Width - 20;
-            int LeftPadding = (Width - radios) / 2;
-            int TopPadding = (Height - (radios / 2)) - y;
-
-            Rectangle rect = new Rectangle(LeftPadding, TopPadding, radios, radios);
-            l.FillPie(Brushes.SkyBlue, rect, 0, -180);
-            for (int i = 1; i <= NumberOfCircle; i++) {
-                radios = ((topViewBox.Width - 20) / NumberOfCircle) * i;
-                LeftPadding = (topViewBox.Width - radios) / 2;
-                TopPadding = (topViewBox.Height - (radios / 2)) - y;
-                rect = new Rectangle(LeftPadding, TopPadding, radios, radios);
-                l.DrawArc(new Pen(Color.Gray, 1.5f), rect, 0, -180);
-            }
-        }
-        private void PaintObstacle(PaintEventArgs e, SolidBrush solidBrush, int x, int y) {
-            Graphics l = e.Graphics;
-
-            const float dotRadios = 10;
-            l.FillEllipse(solidBrush, x, y, dotRadios, dotRadios);
-        }
-
-        #endregion
-
         #region Button Click Event
         private void ReplaceIP_Click(object sender, EventArgs e) {
-            using (var form = new ChangeIP(configuration.getServerIp())) {
-                var result = form.ShowDialog();
-                if (result == DialogResult.OK) {
-                    configuration.setServerIp(form.NewIP.ToString());
-                    serverIP.Text = configuration.getServerIp();
-                    IPAddress server = IPAddress.Parse(configuration.getServerIp());
-                    IPAddress my = LocalIP.GetLocalIP(LOCAL_IP_TYPE.INTERNET);
-                    sendSocket = new SocketSync(my, server, serverPort);
+            lidar.StopScan();
+            var result = new Redefine().ShowDialog();
+            if (result == DialogResult.OK) {
+                lidar.PauseScan();
+                config.LoadConfiguration();
+                DistLabelSetup();
+                // Reconfig lidar settings
+                string lidarIP = config.getLidarIp();
+                string lidarPort = config.getLidarPort();
+                if (lidarIP != Lidar.IP.ToString() || Lidar.PORT != Convert.ToInt32(lidarPort)) {
+                    lidar.SetIp(lidarIP);
+                    lidar.SetPort(int.Parse(lidarPort));
                 }
+                LidarInitialization();
+
+                // Reconfig Serial Port
+                if (serialPort != null) {
+                    serialPort.Close();
+                    serialPort = null;
+                }
+                if (config.getControllerComName() != "כבוי")
+                    SerialPortConnection();
+
+                // Reconfig GPS Serial Port
+                
+                if (gps != null && config.getGPSComName() == "כבוי") {
+                    activeAlert.Columns.RemoveAt(1);
+                    log.Columns.RemoveAt(2);
+                    gps.StopListening();
+                    gps = null;
+                }
+                else if (config.getGPSComName() != "כבוי") {
+                    if (activeAlert.Columns.Count == 6) {
+                        activeAlert.Columns.Insert(1, "קורדינטות");
+                        activeAlert.Columns[1].Width = 300;
+                        activeAlert.Columns[1].TextAlign = HorizontalAlignment.Center;
+                    }
+                    if (log.Columns.Count == 7) {
+                         log.Columns.Insert(2, "קורדינטות");
+                        log.Columns[2].Width = 300;
+                        log.Columns[2].TextAlign = HorizontalAlignment.Center;
+                    }
+                    gps = new GPS(config);
+                    gps.StartListening(GpsStatus);
+                }
+                // Reconfig Server
+                if (sendSocket != null) {
+                    sendSocket.Disconnect();
+                    sendSocket = null;
+                    if (config.getInterntAdapter() != "כבוי")
+                        new Thread(configServerConnection).Start();
+                }
+                lidar.ResumeScan();
             }
+            else lidar.ResumeScan();
         }
         private void clearLog_Click(Object sender, EventArgs e) {
             DialogResult dialogResult = MessageBox.Show(
                    "?האם למחוק את הלוג",
-                   "אימות",
+                   "אימות פעולה",
                    MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button1,
                    MessageBoxOptions.RightAlign);
             if (dialogResult == DialogResult.Yes) log.Items.Clear();
@@ -432,21 +541,77 @@ namespace LidarApplication {
             File.WriteAllText(saveFileDialog1.FileName, csv.ToString(), Encoding.UTF8);
         }
         private void btnTerminal_Click(Object sender, EventArgs e) { terminal.ShowDialog(); }
+        private void ZoomClick(Object sender, EventArgs e) {
+            if (((Button)sender).Name == "zoomOutLidarOutput") GraphicLidarOutput.Zoom /= 2;
+            else if (((Button)sender).Name == "zoomInLidarOutput") GraphicLidarOutput.Zoom *= 2;
+            else if (((Button)sender).Name == "zoomOutAlert") GraphicLidarAlert.Zoom /= 2;
+            else if (((Button)sender).Name == "zoomInAlert") GraphicLidarAlert.Zoom *= 2;
+            DistLabelSetup();
+        }
+
         #endregion
 
-        private void OperatorMode_Load(object sender, EventArgs e) {
-            if (mode == OperatingMode.DRIVER)
-                LidarInitialization();
+        #region System Event
+        private void DrawLidarResult(object sender, PaintEventArgs e) {
+            if (((GroupBox)sender).Name == "lidarOutput")
+                new GraphicLidarOutput((GroupBox)sender, config)
+                    .Draw(e, lidar.GetScanResult());
+            else if (((GroupBox)sender).Name == "lidarAlert")
+                new GraphicLidarAlert((GroupBox)sender, config)
+                    .Draw(e, obstacle);
         }
-        private void OperatorMode_FormClosed(Object sender, FormClosedEventArgs e) {
+        private void OperatorMode_Load(object sender, EventArgs e) {
+            if (mode == OperatingMode.DRIVER) {
+                InitializeDriverMode();
+                LidarInitialization();
+            }
+            else InitializeServerMode();
+        }
+        private void OperatorMode_FormClosing(Object sender, FormClosingEventArgs e) {
             if (mode == OperatingMode.DRIVER) {
                 if (serialPort != null) serialPort.Close();
                 if (gps != null) gps.StopListening();
-                new Thread(lidar.StopScan);
+                lidar.StopScan();
             }
-            if (receiveSocket != null) receiveSocket.StopListening();
+            else {
+                if (receiveSocket != null) receiveSocket.StopListening();
+                if (pingThread != null) pingThread.Abort();
+            }
             //Environment.Exit(0);    
         }
+        private void OperatorMode_SizeChanged(Object sender, EventArgs e) {
+            int r = (int)GraphicLidar.getDiameter(lidarAlert) / 2;
+            int leftPadding = (lidarAlert.Size.Width - (int)GraphicLidar.getDiameter(lidarAlert)) / 2;
+            int w = (r * 2) / 7;
+            int topPadding = lidarAlert.Size.Height - r;
+            int step = r / 3;
 
+            #region Laidar Output 
+            DistTopXLabel1.Location = new Point(leftPadding - 10, lidarAlert.Size.Height - 25);
+            DistTopXLabel2.Location = new Point(leftPadding + w - 15, lidarAlert.Size.Height - 25);
+            DistTopXLabel3.Location = new Point(leftPadding + w * 2 + 5, lidarAlert.Size.Height - 25);
+            DistTopXLabel4.Location = new Point(leftPadding + w * 5 - 45, lidarAlert.Size.Height - 25);
+            DistTopXLabel5.Location = new Point(leftPadding + w * 6 - 25, lidarAlert.Size.Height - 25);
+            DistTopXLabel6.Location = new Point(leftPadding + w * 7 - 40, lidarAlert.Size.Height - 25);
+
+            DistTopYLabel1.Location = new Point(leftPadding + 5, lidarAlert.Size.Height - step - 50);
+            DistTopYLabel2.Location = new Point(leftPadding + 5, lidarAlert.Size.Height - step * 2 - 50);
+            DistTopYLabel3.Location = new Point(lidarAlert.Size.Width / 2 - 30, topPadding - 45);
+            #endregion
+
+            #region Lidar Alert 
+            DistFrontXLabel1.Location = new Point(leftPadding - 10, lidarAlert.Size.Height - 25);
+            DistFrontXLabel2.Location = new Point(leftPadding + w - 15, lidarAlert.Size.Height - 25);
+            DistFrontXLabel3.Location = new Point(leftPadding + w * 2 + 5, lidarAlert.Size.Height - 25);
+            DistFrontXLabel4.Location = new Point(leftPadding + w * 5 - 45, lidarAlert.Size.Height - 25);
+            DistFrontXLabel5.Location = new Point(leftPadding + w * 6 - 25, lidarAlert.Size.Height - 25);
+            DistFrontXLabel6.Location = new Point(leftPadding + w * 7 - 40, lidarAlert.Size.Height - 25);
+
+            DistFrontYLabel1.Location = new Point(leftPadding + 5, lidarAlert.Size.Height - step - 50);
+            DistFrontYLabel2.Location = new Point(leftPadding + 5, lidarAlert.Size.Height - step * 2 - 50);
+            DistFrontYLabel3.Location = new Point(lidarAlert.Size.Width / 2 - 30, topPadding - 45);
+            #endregion
+        }
+        #endregion
     }
 }

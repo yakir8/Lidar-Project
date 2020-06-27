@@ -12,11 +12,11 @@ namespace LidarApplication {
     public partial class DriverActionBar : Form {
         private Configuration savedConfig;
         private Configuration userConfig;
-        private MainMenu mainMenu;
+        private Settings mainMenu;
         private BaseSubMenu subMenu;
 
         public DriverActionBar(Configuration savedConfig, Configuration userConfig, 
-            MainMenu mainMenu,BaseSubMenu subMenu) {
+            Settings mainMenu,BaseSubMenu subMenu) {
             this.savedConfig = savedConfig;
             this.userConfig = userConfig;
             this.mainMenu = mainMenu;
@@ -64,8 +64,15 @@ namespace LidarApplication {
                 savedConfig.setStopAngle(userConfig.getStopAngle());
                 savedConfig.setResolution(userConfig.getResolution());
 
+                savedConfig.setFrontHighAlert(userConfig.getFrontHighAlert());
+                savedConfig.setFrontLowAlert(userConfig.getFrontLowAlert());
                 savedConfig.setSideHighAlert(userConfig.getSideHighAlert());
                 savedConfig.setSideLowAlert(userConfig.getSideLowAlert());
+                savedConfig.setHoleHighAlert(userConfig.getHoleHighAlert());
+                savedConfig.setHoleLowAlert(userConfig.getHoleLowAlert());
+                savedConfig.setMinimumHeightDetected(userConfig.getMinimumHeightDetected());
+                savedConfig.setGridEnable(userConfig.getGridEnable());
+                savedConfig.setActiveZoneEnable(userConfig.getActiveZoneEnable());
 
                 savedConfig.setLidarIp(userConfig.getLidarIp());
                 savedConfig.setLidarPort(userConfig.getLidarPort());
@@ -73,6 +80,7 @@ namespace LidarApplication {
                 savedConfig.setControllerComName(userConfig.getControllerComName());
                 savedConfig.setControllerBaudRate(userConfig.getControllerBaudRate());
                 savedConfig.setControllerParity(userConfig.getControllerParity());
+                savedConfig.setSerialDataType(userConfig.getSerialDataType());
 
                 savedConfig.setGPSComName(userConfig.getGPSComName());
                 savedConfig.setGPSBaudRate(userConfig.getGPSBaudRate());

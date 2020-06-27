@@ -30,8 +30,13 @@ namespace LidarApplication {
             sideAlertLow.Text = userConfig.getSideLowAlert().ToString();
             sideAlertHigh.Text = userConfig.getSideHighAlert().ToString();
 
-            heightAlertLow.Text = userConfig.getHeightLowAlert().ToString();
-            heightAlertHigh.Text = userConfig.getHeightHighAlert().ToString();
+            heightAlertLow.Text = userConfig.getHoleLowAlert().ToString();
+            heightAlertHigh.Text = userConfig.getHoleHighAlert().ToString();
+
+            detectionResolution.Text = userConfig.getMinimumHeightDetected().ToString();
+
+            gridEnable.Text = userConfig.getGridEnable() ? "כן" : "לא";
+            activeZoneEnable.Text = userConfig.getActiveZoneEnable() ? "כן" : "לא";
 
             sensorIp.Text = userConfig.getLidarIp().ToString() + ":" + userConfig.getLidarPort().ToString();
             sensorAdapter.Text = userConfig.getLidarAdapter().ToString();
@@ -41,6 +46,7 @@ namespace LidarApplication {
             controllerCom.Text = userConfig.getControllerComName().ToString();
             controllerBaudRate.Text = userConfig.getControllerBaudRate().ToString();
             controllerParity.Text = userConfig.getControllerParity().ToString();
+            controllerDataType.Text = userConfig.getSerialDataType();
 
             gpsCom.Text = userConfig.getGPSComName().ToString();
             gpsBaudRate.Text = userConfig.getGPSBaudRate().ToString();

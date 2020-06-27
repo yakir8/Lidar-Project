@@ -1,0 +1,70 @@
+# 1 Log in: sMN SetAccessMode (see 4.1, page 12)
+#			<STX> - Start Text
+#			Command type = sMN
+#			Command = SetAccessMode
+#			User Level = 3
+#			Password = F4724744
+#			<ETX> - End Text
+
+SEND	<STX>sMN SetAccessMode 03 F4724744<ETX>
+ACK		<STX>sAN SetAccessMode 1<ETX>
+
+# 2 Set frequency and resolution:	sMN mLMPsetscancfg (see 4.2.1, page 14)
+#									<STX> - Start Text
+#									Command type = sMN
+#									Command = mLMPsetscancfg
+#									Scan frequency = 25Hz
+#									Number of active sectors = 1
+#									Same value for each sector required = 0.25°
+#									Start angle = 0°
+#									Stop angle = 180°
+#									<ETX> - End Text
+
+SEND	<STX>sMN mLMPsetscancfg +2500 +1 +2500 -450000 +2250000<ETX>
+ACK		<STX>sAN mLMPsetscancfg 0 9C4 1 9C4 FFF92230 225510<ETX>
+
+# 3 Configure scandata content: sWN LMDscandatacfg (see 4.3.1, page 56)
+#								<STX> - Start Text
+#								Command type = sWN
+#								Command = LMDscandatacfg
+#								Data Channel = 01 00
+#								Remission = 0
+#								Resolution = 1 (16 bit)
+#								Unit = 0
+#								Encoder = 0
+#								Position = 0
+#								Device Name = 0
+#								Comment = 0
+#								Time = 0
+#								Output Rate = +1
+#								<ETX> - End Text
+
+SEND	<STX>sWN LMDscandatacfg 01 00 0 1 0 00 00 0 0 0 0 +1<ETX>
+ACK		<STX>sWA LMDscandatacfg<ETX>
+
+# 4 Configure scandata output:	sWN LMPoutputRange (see 4.3.2 page 60)
+#								<STX> - Start Text
+#								Command type = sWN
+#								Command = LMPoutputRange
+#								Status Code = 1
+#								Angular Resolution = 0.25°
+#								Start Angle = 0°
+#								Stop angle = 180°
+#								<ETX> - End Text
+
+SEND	<STX>sWN LMPoutputRange 1 {resolution} {start angle} {stop angle}<ETX>
+ACK		<STX>sWA LMPoutputRange<ETX>
+
+# 5 Store parameters: (see 4.2.20, page 53)
+
+SEND	<STX>sMN mEEwriteall<ETX>
+ACK	<STX>sAN mEEwriteall 1<ETX>
+
+# 6 Log out:	sMN Run (see 4.2.21, page 54)
+#				<STX> - Start Text
+#				Command type = sMN
+#				Command = Run
+#				<ETX> - End Text
+
+SEND	<STX>sMN Run<ETX>
+ACK		<STX>sAN Run 1<ETX>

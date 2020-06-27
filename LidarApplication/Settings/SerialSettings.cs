@@ -19,19 +19,18 @@ namespace LidarApplication {
         }
 
         private void comboBoxInit() {
-            string[] parity = { "זוגי", "סימון", "ללא", "אי-זוגי", "רווח" };
-            string[] baudRate = { "9600", "14400", "19200", "38400", "57600", "115200", "128000" };
-
-            controllerParityComboBox.Items.AddRange(parity);
-            controllerBaudRateComboBox.Items.AddRange(baudRate);
+            dataTypeComboBox.Items.AddRange(Configuration.DataType);
+            controllerParityComboBox.Items.AddRange(Configuration.Parity);
+            controllerBaudRateComboBox.Items.AddRange(Configuration.BaudRate);
             controllerComComboBox.Items.Add("כבוי");
             controllerComComboBox.Items.AddRange(SerialPort.GetPortNames());
+            dataTypeComboBox.SelectedItem = dataTypeComboBox.Items[0];
             controllerComComboBox.SelectedItem = controllerComComboBox.Items[0];
             controllerParityComboBox.SelectedItem = controllerParityComboBox.Items[2];
             controllerBaudRateComboBox.SelectedItem = controllerBaudRateComboBox.Items[2];
 
-            gpsParityComboBox.Items.AddRange(parity);
-            gpsBaudRateComboBox.Items.AddRange(baudRate);
+            gpsParityComboBox.Items.AddRange(Configuration.Parity);
+            gpsBaudRateComboBox.Items.AddRange(Configuration.BaudRate);
             gpsComComboBox.Items.Add("כבוי");
             gpsComComboBox.Items.AddRange(SerialPort.GetPortNames());
             gpsComComboBox.SelectedItem = controllerComComboBox.Items[0];
@@ -49,6 +48,8 @@ namespace LidarApplication {
                 controllerComComboBox.SelectedItem = userConfig.getControllerComName();
             else if (controllerComComboBox.Items.Count != 0)
                 controllerComComboBox.SelectedItem = controllerComComboBox.Items[0];
+            if (userConfig.getSerialDataType() != "")
+                dataTypeComboBox.SelectedItem = userConfig.getSerialDataType();
 
             gpsBaudRateComboBox.SelectedItem = userConfig.getGPSBaudRate().ToString();
             gpsParityComboBox.SelectedItem = userConfig.getGPSParity();
@@ -62,6 +63,7 @@ namespace LidarApplication {
             userConfig.setControllerBaudRate(Convert.ToInt32(controllerBaudRateComboBox.SelectedItem));
             userConfig.setControllerParity(controllerParityComboBox.SelectedItem.ToString());
             userConfig.setControllerComName(controllerComComboBox.SelectedItem.ToString());
+            userConfig.setSerialDataType(dataTypeComboBox.SelectedItem.ToString());
 
             userConfig.setGPSBaudRate(Convert.ToInt32(gpsBaudRateComboBox.SelectedItem));
             userConfig.setGPSParity(gpsParityComboBox.SelectedItem.ToString());
