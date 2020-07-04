@@ -1,14 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
-namespace LidarApplication {
-    class ServerSocket {
+namespace LidarApplication
+{
+    class ServerSocket
+    {
 
         private int port;
         private IPAddress ipAddress;
@@ -18,20 +17,20 @@ namespace LidarApplication {
 
         private const int BUFFER_SIZE = 10240;
 
-        public ServerSocket(IPAddress ip, int port, Action<string> ReceiveHandler) {
+        public ServerSocket(IPAddress ip, int port, Action<string> ReceiveHandler){
             this.ipAddress = ip;
             this.port = port;
             this.ReceiveHandler = ReceiveHandler;
             this.listener = new TcpListener(ip, port);
         }
 
-        public void StartListening() {
-            try {
+        public void StartListening(){
+            try{
                 listener.Start();
                 Console.WriteLine("Server started.");
                 listenerThread = new Thread(() => {
                     string msg = null;
-                    while (true) {
+                    while (true){
                         Console.WriteLine("waiting for client");
                         TcpClient client = listener.AcceptTcpClient();
                         do {
@@ -41,7 +40,8 @@ namespace LidarApplication {
                     }
                 });
                 listenerThread.Start();
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 Console.WriteLine(e.ToString());
             }
         }
@@ -57,7 +57,8 @@ namespace LidarApplication {
                     else msg.Append(Convert.ToChar(b).ToString());
                 }
                 return msg.ToString();
-            } catch {
+            }
+            catch {
                 return null;
             }
         }

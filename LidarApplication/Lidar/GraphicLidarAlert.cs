@@ -18,6 +18,7 @@ namespace LidarApplication {
             float maxDisFront = (config.getFrontLowAlert() * 10) / Zoom;
             widthFactor = diameter / (maxDisSide * 2);
             heightFactor = radios / maxDisFront;
+            // Rescaling the max distance 
             if (maxDisSide / maxDisFront < Ratio) {
                 float RatioFactor = (maxDisFront * Ratio) / maxDisSide;
                 widthFactor = diameter / (maxDisSide * 2 * RatioFactor);

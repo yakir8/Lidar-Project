@@ -23,6 +23,7 @@
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent() {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Redefine));
             this.panel1 = new System.Windows.Forms.Panel();
             this.cursor = new System.Windows.Forms.FlowLayoutPanel();
             this.driverSubMenu = new System.Windows.Forms.Panel();
@@ -225,6 +226,7 @@
             this.Controls.Add(this.panel1);
             this.Font = new System.Drawing.Font("Arial", 14F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(177)));
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Margin = new System.Windows.Forms.Padding(6, 5, 6, 5);
             this.MaximizeBox = false;
             this.MaximumSize = new System.Drawing.Size(950, 800);

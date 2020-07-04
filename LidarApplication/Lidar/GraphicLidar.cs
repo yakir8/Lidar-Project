@@ -45,39 +45,6 @@ namespace LidarApplication {
             return (float)Math.Tan(alpha);
         }
         public abstract void Draw(PaintEventArgs e, List<Obstacle> ScanResult);
-        protected void PaintArc(PaintEventArgs e, int NumberOfCircle = 1) {
-            Graphics l = e.Graphics;
-            Rectangle rect = new Rectangle(LeftPadding, TopPadding,(int) diameter, (int)diameter);
-            l.FillPie(Brushes.SkyBlue, rect, 0, -180);
-            for (int i = 1; i <= NumberOfCircle; i++) {
-                int InnerRadios = (int) (diameter / NumberOfCircle) * i;
-                int InnerLeftPadding = (int) (width - diameter) / 2;
-                int InnerTopPadding = (int) (height - (InnerRadios / 2)) - heightOffset;
-                rect = new Rectangle(InnerLeftPadding, InnerTopPadding, InnerRadios, InnerRadios);
-                l.DrawArc(new Pen(Color.Gray, 1.5f), rect, 0, -180);
-            }
-           // PaintActiveZone(e);
-            if (config.getGridEnable()) PaintGrid(e);
-        }
-        private void PaintGrid(PaintEventArgs e) { 
-            float gridWidth = (center - LeftPadding) / 3;
-            Pen pen = new Pen(Color.Gray, 1.5f);
-            // Vertical Line Grid
-            for (int i = 0; i < 3; i++) {
-                float x = center + i * gridWidth;
-                double y = height - heightOffset - Math.Sqrt(Math.Pow(radios, 2) - Math.Pow(x - center, 2));
-                e.Graphics.DrawLine(pen, new PointF(x, (float)y), new PointF(x, height - heightOffset));
-                x = center - i * gridWidth;
-                e.Graphics.DrawLine(pen, new PointF(x, (float)y), new PointF(x, height - heightOffset));
-            }
-            // Horizontal Line Grid
-            for (int i = 0; i < 3; i++) {
-                float y = height - heightOffset - i * gridWidth;
-                double r = 2 * Math.Sqrt(Math.Pow(radios, 2) - Math.Pow(height - heightOffset - y, 2));
-                double x = (float)LeftPadding + ((diameter - r) / 2);
-                e.Graphics.DrawLine(pen, new PointF((float)x, y), new PointF((float)(x + r), y));
-            }
-        }
         protected void PaintRectangle(PaintEventArgs e) {
             Graphics l = e.Graphics;
             l.FillRectangle(Brushes.SkyBlue, LeftPadding, TopPadding, (int)diameter, (int)radios);
@@ -103,7 +70,6 @@ namespace LidarApplication {
                 e.Graphics.DrawLine(pen, new PointF(LeftPadding, y), new PointF(x, y));
             }
         }
-
         private void PaintActiveZone(PaintEventArgs e) {
             Graphics l = e.Graphics;
 
@@ -123,7 +89,6 @@ namespace LidarApplication {
             l.FillRectangle(Brushes.IndianRed, LeftPadding + radios - (side2 / 2),
                 height - h2 - heightOffset, (int)side2, (int)h2);
         }
-
         public static float getDiameter(GroupBox viewBox) {
             float width = viewBox.Width;
             float height = viewBox.Height;

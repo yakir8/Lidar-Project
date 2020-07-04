@@ -124,25 +124,6 @@ namespace LidarApplication {
         // Convert from ASSCI to number unit millimeters
         private float convertDistance(string dist) {
             return Convert.ToInt32(dist, 16);
-
-
-
-            /*
-            |\              c - lidar distance
-            |β\             b - Real distance
-            |  \                     
-            |   \  c        sin(β)= b/c => b = c * sin(β)
-          a |    \                 
-            |     \
-            |      \
-            |_____(α\
-                b
-            */
-            int beta = config.getAngleSetup();
-            double radians = beta * (Math.PI / 180);
-            int c = Convert.ToInt32(dist, 16);
-            float b = (float)(c * Math.Sin(radians));
-            return b;
         }
         public List<Obstacle> GetScanResult() {
             int startAngle = config.getStartAngle();

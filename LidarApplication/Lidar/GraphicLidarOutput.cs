@@ -25,9 +25,9 @@ namespace LidarApplication {
         }
         public override void Draw(PaintEventArgs e, List<Obstacle> ScanResult) {
             Graphics l = e.Graphics;
-            //PaintArc(e);
             PaintRectangle(e);
             PaintFrontViewLine(e, ScanResult);
+            // draw "vehicle" on the screen
             l.FillRectangle(Brushes.Navy, radios + LeftPadding - (vehicleWidth / 2),
                 height - heightOffset, vehicleWidth, heightOffset);
             l.Dispose();
@@ -37,11 +37,13 @@ namespace LidarApplication {
                 List<PointF> points = new List<PointF>();
                 Graphics l = e.Graphics;
                 Pen pen = new Pen(Color.Black, 2f);
+                // Create array of point for dispaly on the screen
                 foreach (Obstacle o in ScanResult) {
                     float y = radios - (o.GetY(0) * heightFactor);
                     float x = center + (o.GetX(0) * widthFactor);
                     points.Add(new PointF(x, y + TopPadding));
                 }
+                // Connect all the point in the array
                 e.Graphics.DrawLines(pen, points.ToArray());
             }
         }

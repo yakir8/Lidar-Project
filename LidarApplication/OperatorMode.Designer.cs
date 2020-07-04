@@ -179,7 +179,7 @@
             this.ReplaceIP.TabIndex = 14;
             this.ReplaceIP.Text = "הגדרות";
             this.ReplaceIP.UseVisualStyleBackColor = false;
-            this.ReplaceIP.Click += new System.EventHandler(this.ReplaceIP_Click);
+            this.ReplaceIP.Click += new System.EventHandler(this.Reconfig_Click);
             // 
             // saveLog
             // 
@@ -940,6 +940,7 @@
             this.ClientSize = new System.Drawing.Size(1084, 661);
             this.Controls.Add(this.tableLayoutPanel3);
             this.Font = new System.Drawing.Font("Arial", 14F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(177)));
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Margin = new System.Windows.Forms.Padding(6, 5, 6, 5);
             this.MinimumSize = new System.Drawing.Size(1100, 700);
             this.Name = "OperatorMode";

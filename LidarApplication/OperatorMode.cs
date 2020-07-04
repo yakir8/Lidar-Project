@@ -41,7 +41,8 @@ namespace LidarApplication {
             DistLabelSetup();
             terminal = new Terminal(lidar);
         }
-
+        // If grid is enable set on the labels the correct number
+        // else hiding the libels
         private void DistLabelSetup() {
             if (config.getGridEnable()) {
                 float ratio = GraphicLidar.GetRatioHeightWidth(config);
@@ -178,22 +179,28 @@ namespace LidarApplication {
                 config.getControllerBaudRate(), parity, 8, StopBits.One);
             serialPort.Open();
         }
-
+        // Create Socket Connection with the server.
+        // And send to the server configuration for correct display
         private void configServerConnection() {
             try {
                 bool isSucceeded = false;
                 int vehicleWidth = config.getVehicleWidth();
                 int height = config.getSensorHeightSetup();
-                int angle = config.getAngleSetup();
+                int setUpAngle = config.getAngleSetup();
+                float resolution = config.getResolution();
+                int startAngle = config.getStartAngle();
+                int stopAngle = config.getStopAngle();
                 int sideL = config.getSideLowAlert();
                 int sideH = config.getSideHighAlert();
                 int FrontL = config.getFrontLowAlert();
                 int FrontH = config.getFrontHighAlert();
-                int HeightL = config.getHoleLowAlert();
-                int HeightH = config.getHoleHighAlert();
-                string srvConfig = "Config " + height + " " + angle + " " +
-                    vehicleWidth + " " + sideL + " " + sideH + " " +
-                    FrontL + " " + FrontH + " " + HeightL + " " + HeightH;
+                int HoleL = config.getHoleLowAlert();
+                int HoleH = config.getHoleHighAlert();
+                int minimumHeightDetected = config.getMinimumHeightDetected();
+                string srvConfig = "Config " + vehicleWidth + " " + height + " " +
+                    setUpAngle + " " + resolution + " " + startAngle + " " +
+                    stopAngle + " " + sideL + " " + sideH + " " + FrontL + " " + 
+                    FrontH + " " + HoleL + " " + HoleH + " " + minimumHeightDetected;
                 IPAddress server = IPAddress.Parse(config.getServerIp());
                 IPAddress my = LocalIP.GetLocalIP(LOCAL_IP_TYPE.INTERNET);
                 if (my == null || server == null) throw new ProtocolViolationException();
@@ -208,6 +215,7 @@ namespace LidarApplication {
         #endregion
 
         #region Server Mode
+        // Setup the system to server mode
         private void InitializeServerMode() {
             lidar = new Lidar(config);
             lidarStatus.Hide();
@@ -235,29 +243,38 @@ namespace LidarApplication {
             pingThread.IsBackground = true;
             pingThread.Start();
         }
+        // Decoding the received configuration 
         private void DecodeConfigFromDriver(string strConfig) {
-            /* configArr[0] = Config key word
-             * configArr[1] = Sensor Height Setup
-             * configArr[2] = Sensor Angle Setup
-             * configArr[3] = Vehicle Width
-             * configArr[4] = Side Low Alert
-             * configArr[5] = Side High Alert
-             * configArr[6] = Front Low Alert
-             * configArr[7] = Front High Alert
-             * configArr[8] = Height Low Alert
-             * configArr[9] = Height High Alert
+            /* configArr[0]  = Config key word
+             * configArr[1]  = Vehicle Width
+             * configArr[2]  = Sensor Height Setup
+             * configArr[3]  = Sensor Angle Setup
+             * configArr[4]  = Sensor Scan Resolution
+             * configArr[5]  = Sensor Start Angle Scanning
+             * configArr[6]  = Sensor Stop Angle Scanning
+             * configArr[7]  = Side Low Alert
+             * configArr[8]  = Side High Alert
+             * configArr[9]  = Front Low Alert
+             * configArr[10] = Front High Alert
+             * configArr[11] = Hole Low Alert
+             * configArr[12] = Hole High Alert
+             * configArr[13] = Minimum Height Detected
              */
             string[] configArr = strConfig.Split(' ');
-            if (configArr.Count() == 10) {
-                config.setSensorHeightSetup(int.Parse(configArr[1]));
-                config.setAngleSetup(int.Parse(configArr[2]));
-                config.setVehicleWidth(int.Parse(configArr[3]));
-                config.setSideLowAlert(int.Parse(configArr[4]));
-                config.setSideHighAlert(int.Parse(configArr[5]));
-                config.setFrontLowAlert(int.Parse(configArr[6]));
-                config.setFrontHighAlert(int.Parse(configArr[7]));
-                config.setHoleLowAlert(int.Parse(configArr[8]));
-                config.setHoleHighAlert(int.Parse(configArr[9]));
+            if (configArr.Count() == 14) {
+                config.setVehicleWidth(int.Parse(configArr[1]));
+                config.setSensorHeightSetup(int.Parse(configArr[2]));
+                config.setAngleSetup(int.Parse(configArr[3]));
+                config.setResolution(float.Parse(configArr[4]));
+                config.setStartAngle(int.Parse(configArr[5]));
+                config.setStopAngle(int.Parse(configArr[6]));
+                config.setSideLowAlert(int.Parse(configArr[7]));
+                config.setSideHighAlert(int.Parse(configArr[8]));
+                config.setFrontLowAlert(int.Parse(configArr[9]));
+                config.setFrontHighAlert(int.Parse(configArr[10]));
+                config.setHoleLowAlert(int.Parse(configArr[11]));
+                config.setHoleHighAlert(int.Parse(configArr[12]));
+                config.setMinimumHeightDetected(int.Parse(configArr[13]));
                 Invoke(new MethodInvoker(DistLabelSetup));
             }
             lidar = new Lidar(config);
@@ -265,6 +282,7 @@ namespace LidarApplication {
         #endregion
 
         #region Scan Data Handle
+        // If needed sending the scan results to serial port & server 
         private void PastResultsOn(string data) {
             // send data to controller
             if (serialPort != null && serialPort.IsOpen)
@@ -293,7 +311,9 @@ namespace LidarApplication {
                     if (serverStatus.Text == "מחובר") sendSocket.Send(serverData, false);
                 }).Start();
         }
-
+        // This function call only on server mode.
+        // If received configuration data call DecodeConfigFromDriver function
+        // If location service is on, saved the driving azimute
         private void ReceiveDriverResults(string data) {
             if (data.Contains("Config")) DecodeConfigFromDriver(data);
             else if (data.Contains("Location")) {
@@ -306,7 +326,7 @@ namespace LidarApplication {
                 gps = new GPS(location, azimuth);
             }
         }
-
+        // Handle scan results (driver & server mode)
         private void ReceiveResults(string data) {
             if (mode == OperatingMode.DRIVER) PastResultsOn(data);
             else if (mode == OperatingMode.SERVER) ReceiveDriverResults(data);
@@ -325,7 +345,6 @@ namespace LidarApplication {
                 Console.WriteLine(e);
             }
         }
-
         private void BuildActiveAlertList(List<Obstacle> ScanResult) {
             float resolution = config.getResolution();
             List<ListViewItem> lst = new List<ListViewItem>();
@@ -454,7 +473,7 @@ namespace LidarApplication {
         #endregion
 
         #region Button Click Event
-        private void ReplaceIP_Click(object sender, EventArgs e) {
+        private void Reconfig_Click(object sender, EventArgs e) {
             lidar.StopScan();
             var result = new Redefine().ShowDialog();
             if (result == DialogResult.OK) {
@@ -534,7 +553,7 @@ namespace LidarApplication {
                    line.SubItems[0].Text, line.SubItems[1].Text, line.SubItems[2].Text,
                    line.SubItems[3].Text, line.SubItems[4].Text, line.SubItems[5].Text,
                    line.SubItems[6].Text);
-                    csv.AppendLine(newLine);
+                    csv.AppendLine(newLine.Replace("מ","m").Replace("מימין", "Right").Replace("משמאל", "Left"));
                 }
 
             }
@@ -570,6 +589,7 @@ namespace LidarApplication {
         private void OperatorMode_FormClosing(Object sender, FormClosingEventArgs e) {
             if (mode == OperatingMode.DRIVER) {
                 if (serialPort != null) serialPort.Close();
+                if (sendSocket != null) sendSocket.Disconnect();
                 if (gps != null) gps.StopListening();
                 lidar.StopScan();
             }
